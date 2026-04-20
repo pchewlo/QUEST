@@ -70,7 +70,6 @@ export default function AgentsPage() {
     {
       key: "last24hDecisions",
       label: "Decisions (24h)",
-      sortable: true,
       align: "right" as const,
       render: (row: Agent) => (
         <span className="tabular-nums">{row.last24h.decisions}</span>
@@ -79,7 +78,6 @@ export default function AgentsPage() {
     {
       key: "last24hSpend",
       label: "Spend (24h)",
-      sortable: true,
       align: "right" as const,
       render: (row: Agent) => (
         <span className="tabular-nums">{"\u00A3"}{row.last24h.spend.toFixed(2)}</span>
@@ -88,7 +86,6 @@ export default function AgentsPage() {
     {
       key: "engagedMinutes",
       label: "Engaged mins",
-      sortable: true,
       align: "right" as const,
       render: (row: Agent) => (
         <span className="tabular-nums">{row.last24h.engagedMinutes}</span>

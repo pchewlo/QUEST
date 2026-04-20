@@ -81,9 +81,7 @@ export default function PlanDetailPage({
   const comparison = getControlComparison(plan)
 
   // Spend today as a percentage of budget
-  const spendPct = plan.status === 'active'
-    ? Math.min(100, Math.round((stats.todaySpend / plan.dailyBudgetTotal) * 100))
-    : plan.status === 'calibrating'
+  const spendPct = (plan.status === 'active' || plan.status === 'calibrating') && plan.dailyBudgetTotal > 0
     ? Math.min(100, Math.round((stats.todaySpend / plan.dailyBudgetTotal) * 100))
     : 0
 
@@ -114,7 +112,6 @@ export default function PlanDetailPage({
       key: "decisions24h",
       label: "Decisions 24h",
       align: "right" as const,
-      sortable: true,
       render: (row: Agent & Record<string, unknown>) => (
         <span className="tabular-nums">{row.last24h.decisions}</span>
       ),
@@ -124,7 +121,6 @@ export default function PlanDetailPage({
       key: "spend24h",
       label: "Spend 24h",
       align: "right" as const,
-      sortable: true,
       render: (row: Agent & Record<string, unknown>) => (
         <span className="tabular-nums">{"\u00A3"}{row.last24h.spend.toFixed(2)}</span>
       ),
@@ -362,8 +358,8 @@ export default function PlanDetailPage({
           data={chartData}
           xKey="date"
           series={[
-            { key: "spend", label: "Daily spend (\u00A3)", color: "var(--quest-accent)" },
-            { key: "retentionLift", label: "Retention lift (%)", color: "var(--quest-success)", type: "line" },
+            { key: "spend", label: "Daily spend (\u00A3)", color: "#7A3029" },
+            { key: "retentionLift", label: "Retention lift (%)", color: "#3B6D2E", type: "line" },
           ]}
           height={260}
           yAxisLeft="Spend (\u00A3)"

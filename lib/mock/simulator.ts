@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Decision } from "../types";
 import { PLAN_IDS } from "./plans";
-import { format } from "date-fns";
+import { format, subSeconds } from "date-fns";
 
 // ---- Helpers ----
 
@@ -157,19 +157,26 @@ type SimulatorState = {
 };
 
 export const useSimulator = create<SimulatorState>((set, get) => {
-  let decisionInterval: ReturnType<typeof setInterval> | null = null;
+  let decisionTimeout: ReturnType<typeof setTimeout> | null = null;
   let kpiInterval: ReturnType<typeof setInterval> | null = null;
 
-  function startIntervals() {
-    if (decisionInterval) return; // Already running
-
-    // Generate new decision every 2-3 seconds
-    decisionInterval = setInterval(() => {
+  function scheduleNextDecision() {
+    // Variable delay (2-4 seconds) for more realistic feel
+    const delay = 2000 + Math.random() * 2000;
+    decisionTimeout = setTimeout(() => {
       const decision = generateLiveDecision();
       set((state) => ({
         liveFeed: [decision, ...state.liveFeed].slice(0, 50),
       }));
-    }, 2000 + Math.random() * 1000);
+      scheduleNextDecision();
+    }, delay);
+  }
+
+  function startIntervals() {
+    if (decisionTimeout || kpiInterval) return; // Already running
+
+    // Generate new decisions at varying intervals
+    scheduleNextDecision();
 
     // Tick KPIs every 10 seconds
     kpiInterval = setInterval(() => {
@@ -193,8 +200,8 @@ export const useSimulator = create<SimulatorState>((set, get) => {
         kpis.retentionLift += (Math.random() - 0.5) * 0.2;
         kpis.retentionLift = Math.round(Math.max(17, Math.min(20, kpis.retentionLift)) * 10) / 10;
 
-        // Safety count occasionally +1
-        if (Math.random() > 0.7) {
+        // Safety count occasionally +1, capped at a realistic daily max
+        if (Math.random() > 0.7 && kpis.safetyToday < 60) {
           kpis.safetyToday += 1;
         }
 
@@ -208,8 +215,19 @@ export const useSimulator = create<SimulatorState>((set, get) => {
     setTimeout(startIntervals, 100);
   }
 
+  // Seed the live feed with some initial decisions so it's not empty on mount
+  const initialFeed: Decision[] = [];
+  const seedNow = new Date();
+  for (let i = 0; i < 12; i++) {
+    const decision = generateLiveDecision();
+    // Ensure unique IDs and stagger timestamps so the feed looks natural
+    decision.id = `seed-${i}-${Math.floor(Math.random() * 10000)}`;
+    decision.timestamp = format(subSeconds(seedNow, i * 3), "yyyy-MM-dd'T'HH:mm:ss'Z'");
+    initialFeed.push(decision);
+  }
+
   return {
-    liveFeed: [],
+    liveFeed: initialFeed,
     kpis: {
       activeAgents: 12847,
       todaySpend: 8420,
@@ -224,9 +242,9 @@ export const useSimulator = create<SimulatorState>((set, get) => {
       set({ isRunning: true });
     },
     stop: () => {
-      if (decisionInterval) {
-        clearInterval(decisionInterval);
-        decisionInterval = null;
+      if (decisionTimeout) {
+        clearTimeout(decisionTimeout);
+        decisionTimeout = null;
       }
       if (kpiInterval) {
         clearInterval(kpiInterval);

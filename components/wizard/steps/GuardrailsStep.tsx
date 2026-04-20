@@ -18,12 +18,12 @@ type TemplateOption = {
 }
 
 const availableTemplates: TemplateOption[] = [
-  { id: "t1", name: "Daily streak", archetype: "streak", description: "Progressive reward for consecutive logins" },
-  { id: "t2", name: "Free spin drop", archetype: "free_spin", description: "Surprise free spins on favoured slot" },
-  { id: "t3", name: "Cashback safety net", archetype: "cashback", description: "Loss-triggered partial refund" },
-  { id: "t4", name: "Bonus bet unlock", archetype: "bonus_bet", description: "Earned bonus bet after qualifying play" },
-  { id: "t5", name: "Take a break nudge", archetype: "cooldown_nudge", description: "Gentle reminder after extended sessions" },
-  { id: "t6", name: "F2P challenge", archetype: "f2p_engagement", description: "Free-to-play mini-game challenge" },
+  { id: "tpl-daily-streak-reward", name: "Daily streak", archetype: "streak", description: "Progressive reward for consecutive logins" },
+  { id: "tpl-morning-free-spin", name: "Free spin drop", archetype: "free_spin", description: "Surprise free spins on favoured slot" },
+  { id: "tpl-cashback-weekend", name: "Cashback safety net", archetype: "cashback", description: "Loss-triggered partial refund" },
+  { id: "tpl-match-deposit-50", name: "Bonus bet unlock", archetype: "bonus_bet", description: "Earned bonus bet after qualifying play" },
+  { id: "tpl-cooldown-gentle", name: "Take a break nudge", archetype: "cooldown_nudge", description: "Gentle reminder after extended sessions" },
+  { id: "tpl-f2p-daily-quiz", name: "F2P challenge", archetype: "f2p_engagement", description: "Free-to-play mini-game challenge" },
 ]
 
 function Toggle({

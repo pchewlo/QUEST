@@ -99,6 +99,7 @@ export type DailyMetrics = {
   activeAgents: number;
   decisions: number;
   retentionLift: number;
+  controlRetention: number;
   cpep: number;
   safetyInterventions: number;
 };

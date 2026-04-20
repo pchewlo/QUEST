@@ -66,7 +66,6 @@ export default function TemplatesPage() {
       key: "costRange",
       label: "Cost range",
       align: "right" as const,
-      sortable: true,
       render: (row: MissionTemplate) => (
         <span className="tabular-nums text-quest-ink-muted">
           {"\u00A3"}{row.expectedCostRange[0].toFixed(2)} – {"\u00A3"}{row.expectedCostRange[1].toFixed(2)}

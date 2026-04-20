@@ -182,7 +182,7 @@ export default function OverviewPage() {
       {/* Active plans table */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-medium text-quest-ink">Active plans</h2>
+          <h2 className="text-[15px] font-medium text-quest-ink">Plans</h2>
           <Link
             href="/plans"
             className="text-[13px] font-medium text-quest-accent hover:text-quest-accent/80 transition-colors"
