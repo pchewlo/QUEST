@@ -5,6 +5,7 @@ import { getDB } from "@/lib/mock/db"
 import { QuestBadge } from "@/components/QuestBadge"
 import { StatusPill } from "@/components/StatusPill"
 import { Decision } from "@/lib/types"
+import { useRouter } from "next/navigation"
 import {
   Zap,
   Gift,
@@ -22,6 +23,7 @@ import {
   Banknote,
   Heart,
   Brain,
+  ArrowLeft,
 } from "lucide-react"
 
 // Deterministic pseudo-random from a string seed
@@ -232,6 +234,7 @@ export default function AgentDetailPage({
   params: Promise<{ playerId: string }>
 }) {
   const { playerId } = use(params)
+  const router = useRouter()
 
   const decisions = useMemo(() => generatePlayerDecisions(playerId), [playerId])
   const signals = useMemo(() => generateSignalState(playerId), [playerId])
@@ -256,6 +259,15 @@ export default function AgentDetailPage({
 
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <button
+        onClick={() => router.push("/agents")}
+        className="inline-flex items-center gap-1.5 text-[13px] text-quest-ink-muted hover:text-quest-ink transition-colors"
+      >
+        <ArrowLeft size={14} strokeWidth={1.5} />
+        Agents
+      </button>
+
       {/* Player card */}
       <div className="rounded-lg border border-border bg-card p-5">
         <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
@@ -322,7 +334,7 @@ export default function AgentDetailPage({
                 return (
                   <div
                     key={d.id}
-                    className={`relative flex gap-4 py-3 ${idx < decisions.length - 1 ? "border-b border-border/50" : ""} ${isRg ? "bg-red-50/50 dark:bg-red-950/10 -mx-5 px-5 rounded" : ""}`}
+                    className={`relative flex gap-4 py-3 ${idx < decisions.length - 1 ? "border-b border-border/50" : ""} ${isRg ? "bg-quest-danger-soft/50 -mx-5 px-5 rounded" : ""}`}
                   >
                     {/* Timestamp */}
                     <div className="w-16 shrink-0 pt-0.5 text-right">
