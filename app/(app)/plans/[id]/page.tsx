@@ -330,7 +330,7 @@ export default function PlanDetailPage({
             Plan performance vs. control (held-out {plan.controlGroupPct}% of cohort)
           </span>
           <span className="text-quest-ink-faint mx-1">&mdash;</span>
-          <span className="font-medium" style={{ color: "#7A3029" }}>
+          <span className="font-medium" style={{ color: "#1A2332" }}>
             QUEST: +{comparison.quest.toFixed(1)}% retention
           </span>
           <span className="text-quest-ink-faint">&middot;</span>
@@ -355,7 +355,7 @@ export default function PlanDetailPage({
           data={chartData}
           xKey="date"
           series={[
-            { key: "spend", label: "Daily spend (\u00A3)", color: "#7A3029" },
+            { key: "spend", label: "Daily spend (\u00A3)", color: "#1A2332" },
             { key: "retentionLift", label: "Retention lift (%)", color: "#3B6D2E", type: "line" },
           ]}
           height={260}

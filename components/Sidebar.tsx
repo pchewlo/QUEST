@@ -32,9 +32,16 @@ export function Sidebar() {
     <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-border bg-card">
       <div className="flex h-14 items-center px-5">
         <span
-          className="text-[15px] font-medium tracking-[0.2em] text-quest-accent"
+          className="text-quest-accent uppercase"
+          style={{
+            fontFamily: 'var(--font-brand, "Iowan Old Style", Palatino, Georgia, serif)',
+            fontSize: '14px',
+            fontWeight: 400,
+            letterSpacing: '0.26em',
+            lineHeight: 1,
+          }}
         >
-          QUEST
+          Quest
         </span>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">

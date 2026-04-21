@@ -242,7 +242,7 @@ export default function CreatePlanPage() {
             <button
               onClick={handleLaunch}
               disabled={!canLaunch}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#6b1d2e] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-[#5a1826] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-quest-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-quest-accent/90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Rocket size={14} strokeWidth={1.5} />
               Launch plan

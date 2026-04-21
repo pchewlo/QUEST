@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -47,7 +48,7 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* QUEST custom tokens */
+  /* QUEST tokens mapped to Canon semantic layer */
   --color-quest-bg: var(--quest-bg);
   --color-quest-surface: var(--quest-surface);
   --color-quest-surface-muted: var(--quest-surface-muted);
@@ -66,118 +67,126 @@
   --color-quest-info-soft: var(--quest-info-soft);
 }
 
-:root {
-  /* shadcn mapped to QUEST palette */
-  --background: #F6F5F1;
-  --foreground: #1F1E1C;
-  --card: #FFFFFF;
-  --card-foreground: #1F1E1C;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F1E1C;
-  --primary: #7A3029;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F0EFE9;
-  --secondary-foreground: #1F1E1C;
-  --muted: #F0EFE9;
-  --muted-foreground: #5F5E5A;
-  --accent: #F0EFE9;
-  --accent-foreground: #1F1E1C;
-  --destructive: #A33532;
-  --border: rgba(0, 0, 0, 0.08);
-  --input: rgba(0, 0, 0, 0.08);
-  --ring: #7A3029;
-  --radius: 0.5rem;
+/* ==========================================================================
+   CANON DESIGN SYSTEM — mapped to QUEST
+   Layer 1: Raw Canon palette
+   Layer 2: Semantic tokens (what components reference)
+   ========================================================================== */
 
-  /* Chart colors */
-  --chart-1: #7A3029;
-  --chart-2: #3B6D2E;
-  --chart-3: #185FA5;
-  --chart-4: #854F0B;
-  --chart-5: #5F5E5A;
+:root {
+  /* --- shadcn base vars mapped to Canon --- */
+  --background: #FFFFFF;
+  --foreground: #37352F;
+  --card: #FFFFFF;
+  --card-foreground: #37352F;
+  --popover: #FFFFFF;
+  --popover-foreground: #37352F;
+  --primary: #1A2332;
+  --primary-foreground: #F3EFE6;
+  --secondary: #F7F7F5;
+  --secondary-foreground: #37352F;
+  --muted: #F7F7F5;
+  --muted-foreground: #5F5E5B;
+  --accent: #F7F7F5;
+  --accent-foreground: #37352F;
+  --destructive: #D44C47;
+  --border: rgba(55, 53, 47, 0.12);
+  --input: rgba(55, 53, 47, 0.12);
+  --ring: #1A2332;
+  --radius: 0.25rem;
+
+  /* Chart colors — Canon institutional */
+  --chart-1: #1A2332;
+  --chart-2: #448361;
+  --chart-3: #2383E2;
+  --chart-4: #D9730D;
+  --chart-5: #9B9A97;
 
   /* Sidebar */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1F1E1C;
-  --sidebar-primary: #7A3029;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F0EFE9;
-  --sidebar-accent-foreground: #1F1E1C;
-  --sidebar-border: rgba(0, 0, 0, 0.08);
-  --sidebar-ring: #7A3029;
+  --sidebar-foreground: #37352F;
+  --sidebar-primary: #1A2332;
+  --sidebar-primary-foreground: #F3EFE6;
+  --sidebar-accent: #F7F7F5;
+  --sidebar-accent-foreground: #37352F;
+  --sidebar-border: rgba(55, 53, 47, 0.09);
+  --sidebar-ring: #1A2332;
 
-  /* QUEST-specific tokens */
-  --quest-bg: #F6F5F1;
+  /* --- QUEST semantic tokens → Canon values --- */
+  --quest-bg: #FFFFFF;
   --quest-surface: #FFFFFF;
-  --quest-surface-muted: #F0EFE9;
-  --quest-ink: #1F1E1C;
-  --quest-ink-muted: #5F5E5A;
-  --quest-ink-faint: #8A8780;
-  --quest-accent: #7A3029;
-  --quest-accent-soft: #F2E6E4;
-  --quest-success: #3B6D2E;
-  --quest-success-soft: #E8F1E6;
-  --quest-warning: #854F0B;
-  --quest-warning-soft: #FAEEDA;
-  --quest-danger: #A33532;
-  --quest-danger-soft: #F9E6E4;
-  --quest-info: #185FA5;
-  --quest-info-soft: #E6F1FB;
+  --quest-surface-muted: #F7F7F5;
+  --quest-ink: #37352F;
+  --quest-ink-muted: #5F5E5B;
+  --quest-ink-faint: #9B9A97;
+  --quest-accent: #1A2332;
+  --quest-accent-soft: rgba(26, 35, 50, 0.08);
+  --quest-success: #448361;
+  --quest-success-soft: #DBEDDB;
+  --quest-warning: #D9730D;
+  --quest-warning-soft: #FADEC9;
+  --quest-danger: #D44C47;
+  --quest-danger-soft: #FBE4E4;
+  --quest-info: #2383E2;
+  --quest-info-soft: rgba(35, 131, 226, 0.10);
 
-  --font-sans: ui-sans-serif, system-ui, "Inter", -apple-system, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  /* Canon typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-brand: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
 }
 
 .dark {
-  --background: #1A1918;
-  --foreground: #E8E7E3;
-  --card: #242320;
-  --card-foreground: #E8E7E3;
-  --popover: #242320;
-  --popover-foreground: #E8E7E3;
-  --primary: #C4706A;
-  --primary-foreground: #1A1918;
-  --secondary: #2A2926;
-  --secondary-foreground: #E8E7E3;
-  --muted: #2A2926;
-  --muted-foreground: #8A8780;
-  --accent: #2A2926;
-  --accent-foreground: #E8E7E3;
-  --destructive: #C4706A;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: #C4706A;
+  --background: #191919;
+  --foreground: #E9E9E7;
+  --card: #202020;
+  --card-foreground: #E9E9E7;
+  --popover: #202020;
+  --popover-foreground: #E9E9E7;
+  --primary: #2383E2;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2A2A2A;
+  --secondary-foreground: #E9E9E7;
+  --muted: #2A2A2A;
+  --muted-foreground: #9B9A97;
+  --accent: #2A2A2A;
+  --accent-foreground: #E9E9E7;
+  --destructive: #E77B77;
+  --border: rgba(255, 255, 255, 0.13);
+  --input: rgba(255, 255, 255, 0.13);
+  --ring: #2383E2;
 
-  --chart-1: #C4706A;
-  --chart-2: #6BA35E;
-  --chart-3: #5A9FD4;
-  --chart-4: #C4940B;
-  --chart-5: #8A8780;
+  --chart-1: #2383E2;
+  --chart-2: #5EB07A;
+  --chart-3: #6FB3EF;
+  --chart-4: #E1A33B;
+  --chart-5: #9B9A97;
 
-  --sidebar: #242320;
-  --sidebar-foreground: #E8E7E3;
-  --sidebar-primary: #C4706A;
-  --sidebar-primary-foreground: #1A1918;
-  --sidebar-accent: #2A2926;
-  --sidebar-accent-foreground: #E8E7E3;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #C4706A;
+  --sidebar: #202020;
+  --sidebar-foreground: #E9E9E7;
+  --sidebar-primary: #2383E2;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2A2A2A;
+  --sidebar-accent-foreground: #E9E9E7;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: #2383E2;
 
-  --quest-bg: #1A1918;
-  --quest-surface: #242320;
-  --quest-surface-muted: #2A2926;
-  --quest-ink: #E8E7E3;
-  --quest-ink-muted: #8A8780;
-  --quest-ink-faint: #5F5E5A;
-  --quest-accent: #C4706A;
-  --quest-accent-soft: #3A2422;
-  --quest-success: #6BA35E;
-  --quest-success-soft: #1E2E1A;
-  --quest-warning: #C4940B;
-  --quest-warning-soft: #2E2610;
-  --quest-danger: #C4706A;
-  --quest-danger-soft: #3A2422;
-  --quest-info: #5A9FD4;
-  --quest-info-soft: #1A2A3A;
+  --quest-bg: #191919;
+  --quest-surface: #202020;
+  --quest-surface-muted: #2A2A2A;
+  --quest-ink: #E9E9E7;
+  --quest-ink-muted: #BFBFBB;
+  --quest-ink-faint: #9B9A97;
+  --quest-accent: #2383E2;
+  --quest-accent-soft: rgba(35, 131, 226, 0.15);
+  --quest-success: #5EB07A;
+  --quest-success-soft: rgba(68, 131, 97, 0.22);
+  --quest-warning: #E1A33B;
+  --quest-warning-soft: rgba(217, 115, 13, 0.22);
+  --quest-danger: #E77B77;
+  --quest-danger-soft: rgba(212, 76, 71, 0.22);
+  --quest-info: #6FB3EF;
+  --quest-info-soft: rgba(35, 131, 226, 0.18);
 }
 
 @layer base {
@@ -186,6 +195,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;

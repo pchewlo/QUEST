@@ -66,7 +66,7 @@ export default function OverviewPage() {
 
   // Build visible series list from toggle state
   const allSeriesDefs = [
-    { key: "spend", label: "Spend (\u00A3)", color: "#7A3029", type: "area" as const },
+    { key: "spend", label: "Spend (\u00A3)", color: "#1A2332", type: "area" as const },
     { key: "retentionLift", label: "Retention lift (%)", color: "#3B6D2E", type: "line" as const },
     { key: "activeAgents", label: "Active agents (k)", color: "#185FA5", type: "line" as const },
     { key: "safetyInterventions", label: "Safety interventions", color: "#854F0B", type: "line" as const },
@@ -174,9 +174,9 @@ export default function OverviewPage() {
           <div className="grid grid-cols-2">
             {/* QUEST side */}
             <div className="border-r border-border p-4">
-              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#7A3029" }}>QUEST</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#1A2332" }}>QUEST</span>
               <div className="mt-1">
-                <span className="text-[28px] font-medium tabular-nums" style={{ color: "#7A3029" }}>+{kpis.retentionLift.toFixed(1)}%</span>
+                <span className="text-[28px] font-medium tabular-nums" style={{ color: "#1A2332" }}>+{kpis.retentionLift.toFixed(1)}%</span>
               </div>
               <span className="text-[11px] text-quest-ink-faint">7-day retention</span>
             </div>

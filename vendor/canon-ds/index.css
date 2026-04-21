@@ -1,0 +1,254 @@
+@import "tailwindcss";
+/* Canon — brand fonts (Inter only, Notion-style) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ==========================================================================
+   3-LAYER TOKEN ARCHITECTURE
+   Layer 1: Raw palette (primitive values — never reference in components)
+   Layer 2: Semantic tokens (meaning-based — use these in components)
+   Layer 3: Component tokens (component-specific — computed from semantic)
+   ========================================================================== */
+
+:root {
+  /* ---------- LAYER 1: RAW PALETTE — Notion neutrals + Canon accent ---------- */
+  --palette-white: #FFFFFF;
+  --palette-black: #000000;
+
+  /* Warm Notion grays — the defining characteristic */
+  --canon-paper:     #FFFFFF;
+  --canon-cream:     #FBFBFA;
+  --canon-fog:       #F7F7F5;
+  --canon-mist:      #F1F1EF;
+  --canon-cloud:     #E9E9E7;
+  --canon-silver:    #D3D1CB;
+  --canon-stone:     #9B9A97;
+  --canon-slate:     #787774;
+  --canon-graphite:  #5F5E5B;
+  --canon-ink:       #37352F;  /* the Notion text color */
+  --canon-obsidian:  #191918;
+
+  /* Canon brand colors — institutional, serif-paired */
+  --canon-navy:      #1A2332;   /* default mark color */
+  --canon-navy-soft: #2A3A52;
+  --canon-green:     #1D3A2F;   /* Oxford Green — distinctive variant */
+  --canon-graphite:  #1F1E1C;   /* editorial / print */
+  --canon-cream-brand: #F3EFE6; /* brand surface / inverse mark */
+
+  /* Legacy Notion blue kept as a "link" color for inline hyperlinks only */
+  --canon-blue-500:  #2383E2;
+  --canon-blue-600:  #1A6CBF;
+
+  /* Status — warm, restrained */
+  --canon-green-500: #448361;
+  --canon-green-100: #DBEDDB;
+  --canon-yellow-500: #D9730D;
+  --canon-yellow-100: #FADEC9;
+  --canon-red-500:   #D44C47;
+  --canon-red-100:   #FBE4E4;
+
+  /* Radii — small, Notion-style */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-rounded: 9999px;
+
+  /* Spacing */
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  /* Typography — Inter everywhere */
+  --font-sans:    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-brand:   "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", monospace;
+
+  /* Brand wordmark tokens */
+  --canon-tracking-xl: 0.22em;
+  --canon-tracking-lg: 0.24em;
+  --canon-tracking-md: 0.26em;
+  --canon-tracking-sm: 0.28em;
+
+  --text-2xs: 11px;
+  --text-xs:  12px;
+  --text-sm:  13px;
+  --text-base:14px;
+  --text-md:  15px;
+  --text-lg:  16px;
+  --text-xl:  20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --text-4xl: 40px;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.6;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* Shadows — whisper-light, Notion-style */
+  --shadow-xs: 0 1px 2px rgba(15, 15, 15, 0.05);
+  --shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.1), 0 1px 3px rgba(15, 15, 15, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 15, 15, 0.08), 0 2px 4px -1px rgba(15, 15, 15, 0.04);
+  --shadow-lg: 0 10px 20px rgba(15, 15, 15, 0.10), 0 3px 6px rgba(15, 15, 15, 0.05);
+  --shadow-popover: 0 14px 28px rgba(15, 15, 15, 0.12), 0 10px 10px rgba(15, 15, 15, 0.05);
+}
+
+/* ---------- LAYER 2: SEMANTIC TOKENS — LIGHT (DEFAULT) ---------- */
+:root,
+[data-theme="light"] {
+  --bg-canvas:       var(--canon-paper);
+  --bg-surface:      var(--canon-paper);
+  --bg-surface-alt:  var(--canon-fog);
+  --bg-sunk:         var(--canon-cream);
+  --bg-hover:        rgba(55, 53, 47, 0.06);
+  --bg-active:       rgba(55, 53, 47, 0.09);
+  --bg-selected:     rgba(35, 131, 226, 0.10);
+
+  --border-subtle:   rgba(55, 53, 47, 0.06);
+  --border-default:  rgba(55, 53, 47, 0.12);
+  --border-strong:   rgba(55, 53, 47, 0.24);
+
+  --text-primary:    var(--canon-ink);
+  --text-secondary:  var(--canon-graphite);
+  --text-muted:      var(--canon-stone);
+  --text-inverse:    var(--canon-paper);
+
+  --accent:          var(--canon-navy);
+  --accent-hover:    var(--canon-navy-soft);
+  --accent-pressed:  var(--canon-graphite);
+  --accent-fg:       var(--canon-cream-brand);
+  --accent-soft:     rgba(26, 35, 50, 0.08);
+  --link:            var(--canon-blue-500);
+  --link-hover:      var(--canon-blue-600);
+
+  --status-draft:        var(--canon-stone);
+  --status-inprogress:   var(--canon-yellow-500);
+  --status-ready:        var(--canon-green-500);
+  --status-danger:       var(--canon-red-500);
+
+  --status-draft-bg:      rgba(155, 154, 151, 0.18);
+  --status-inprogress-bg: var(--canon-yellow-100);
+  --status-ready-bg:      var(--canon-green-100);
+  --status-danger-bg:     var(--canon-red-100);
+}
+
+/* ---------- LAYER 2: SEMANTIC TOKENS — DARK ---------- */
+[data-theme="dark"] {
+  --bg-canvas:       #191919;
+  --bg-surface:      #202020;
+  --bg-surface-alt:  #2A2A2A;
+  --bg-sunk:         #141414;
+  --bg-hover:        rgba(255, 255, 255, 0.055);
+  --bg-active:       rgba(255, 255, 255, 0.09);
+  --bg-selected:     rgba(35, 131, 226, 0.18);
+
+  --border-subtle:   rgba(255, 255, 255, 0.07);
+  --border-default:  rgba(255, 255, 255, 0.13);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+
+  --text-primary:    #E9E9E7;
+  --text-secondary:  #BFBFBB;
+  --text-muted:      #9B9A97;
+  --text-inverse:    var(--canon-ink);
+
+  --accent:          var(--canon-blue-500);
+  --accent-hover:    var(--canon-blue-100);
+  --accent-pressed:  #6FB3EF;
+  --accent-fg:       var(--canon-paper);
+  --accent-soft:     rgba(35, 131, 226, 0.15);
+
+  --status-draft:        #9B9A97;
+  --status-inprogress:   #E1A33B;
+  --status-ready:        #5EB07A;
+  --status-danger:       #E77B77;
+
+  --status-draft-bg:     rgba(155, 154, 151, 0.18);
+  --status-inprogress-bg: rgba(217, 115, 13, 0.22);
+  --status-ready-bg:      rgba(68, 131, 97, 0.22);
+  --status-danger-bg:     rgba(212, 76, 71, 0.22);
+}
+
+/* ---------- LAYER 3: COMPONENT TOKENS ---------- */
+:root {
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 48px;
+  --topbar-height: 45px;
+  --docpanel-width: 420px;
+
+  --btn-radius:      var(--radius-md);
+  --btn-height-sm:   26px;
+  --btn-height-md:   32px;
+  --btn-height-lg:   38px;
+  --btn-padding-x:   var(--space-4);
+
+  --card-bg:         var(--bg-surface);
+  --card-border:     var(--border-subtle);
+  --card-radius:     var(--radius-md);
+
+  --chip-bg:         var(--bg-surface-alt);
+  --chip-fg:         var(--text-secondary);
+
+  --input-height:    32px;
+  --input-padding-y: var(--space-2);
+  --input-padding-x: var(--space-3);
+  --input-gap:       var(--space-3);
+  --input-radius:    var(--radius-md);
+
+  --logo-height:     28px;
+  --logo-padding-y:  var(--space-1);
+  --logo-padding-x:  var(--space-3);
+  --logo-gap:        var(--space-2);
+}
+
+/* ========================================================================== */
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-canvas);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+button { font-family: inherit; cursor: pointer; }
+code, pre { font-family: var(--font-mono); }
+
+/* Scrollbar — thin, Notion-style */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 6px;
+  border: 2px solid var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+.placeholder-border {
+  border: 1px dashed var(--border-default);
+  background: var(--bg-sunk);
+}
+
+/* Subtle focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
