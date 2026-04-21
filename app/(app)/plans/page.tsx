@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Plus } from "lucide-react"
+import { Search } from "lucide-react"
 import { getDB } from "@/lib/mock/db"
 import { DataTable } from "@/components/DataTable"
 import { StatusPill } from "@/components/StatusPill"
@@ -178,15 +178,8 @@ export default function PlansPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-[32px] font-medium text-quest-ink">Plans</h1>
-        <button
-          onClick={() => router.push("/plans/new")}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-quest-accent px-3 py-2 text-[13px] font-medium text-white transition-colors hover:bg-quest-accent/90"
-        >
-          <Plus size={14} strokeWidth={2} />
-          Create plan
-        </button>
       </div>
 
       {/* Filter row */}

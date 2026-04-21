@@ -1,32 +1,23 @@
 'use client'
 
-import { use, useMemo } from "react"
+import { use, useMemo, useState, useEffect, useCallback } from "react"
 import { getDB } from "@/lib/mock/db"
 import { QuestBadge } from "@/components/QuestBadge"
 import { StatusPill } from "@/components/StatusPill"
 import { Decision } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import {
-  Zap,
-  Gift,
-  Pause,
-  MinusCircle,
-  Gamepad2,
-  ArrowDownCircle,
-  ShieldAlert,
-  ShieldOff,
-  Clock,
-  Activity,
-  Sun,
-  TrendingDown,
-  Flag,
-  Banknote,
-  Heart,
-  Brain,
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  ShieldAlert,
 } from "lucide-react"
 
+// ---------------------------------------------------------------------------
 // Deterministic pseudo-random from a string seed
+// ---------------------------------------------------------------------------
+
 function hashSeed(str: string): number {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
@@ -55,23 +46,9 @@ function pickWeighted<T>(items: T[], weights: number[], rand: () => number): T {
   return items[items.length - 1]
 }
 
-const DECISION_CONFIG: Record<Decision["type"], { label: string; colorClass: string; icon: React.ReactNode }> = {
-  mission: { label: "Mission", colorClass: "bg-quest-accent", icon: <Zap size={14} /> },
-  bonus: { label: "Bonus", colorClass: "bg-quest-success", icon: <Gift size={14} /> },
-  cooldown: { label: "Cooldown", colorClass: "bg-quest-info", icon: <Pause size={14} /> },
-  no_action: { label: "No action", colorClass: "bg-quest-surface-muted", icon: <MinusCircle size={14} /> },
-  f2p: { label: "F2P", colorClass: "bg-purple-500", icon: <Gamepad2 size={14} /> },
-  cashback_deferred: { label: "Cashback (deferred)", colorClass: "bg-amber-500", icon: <ArrowDownCircle size={14} /> },
-  held_rg: { label: "RG Hold", colorClass: "bg-quest-danger", icon: <ShieldAlert size={14} /> },
-  blocked_rg: { label: "RG Block", colorClass: "bg-quest-danger", icon: <ShieldOff size={14} /> },
-}
-
-const OUTCOME_CONFIG: Record<string, { label: string; colorClass: string }> = {
-  engaged: { label: "Engaged", colorClass: "text-quest-success" },
-  ignored: { label: "Ignored", colorClass: "text-quest-ink-faint" },
-  pending: { label: "Pending", colorClass: "text-quest-warning" },
-  churned: { label: "Churned", colorClass: "text-quest-danger" },
-}
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const SIGNALS = [
   "post-loss", "slot-preference", "morning-session", "win-streak",
@@ -89,24 +66,158 @@ const TEMPLATE_IDS = [
   "tpl-welcome-streak-7day",
 ]
 
-function generatePlayerDecisions(playerId: string): Decision[] {
+const TEMPLATE_NAMES: Record<string, string> = {
+  "tpl-morning-free-spin": "Morning free spin",
+  "tpl-streak-3-wins": "3-win streak reward",
+  "tpl-scratch-card-morning": "Morning scratch card",
+  "tpl-match-deposit-50": "50% deposit match",
+  "tpl-cashback-weekend": "Weekend cashback",
+  "tpl-f2p-daily-quiz": "Daily quiz (F2P)",
+  "tpl-cooldown-gentle": "Gentle cooldown nudge",
+  "tpl-high-stake-match": "High-stake match bonus",
+  "tpl-loss-recovery-10": "10% loss recovery",
+  "tpl-welcome-streak-7day": "7-day welcome streak",
+}
+
+// ---------------------------------------------------------------------------
+// Decision type chip styling — explicit hex-based colors
+// ---------------------------------------------------------------------------
+
+const CHIP_CONFIG: Record<Decision["type"], { label: string; bg: string; text: string }> = {
+  mission:           { label: "Mission",           bg: "bg-quest-accent-soft",   text: "text-quest-accent" },
+  bonus:             { label: "Bonus",             bg: "bg-quest-success-soft",  text: "text-quest-success" },
+  cooldown:          { label: "Cooldown",          bg: "bg-quest-info-soft",     text: "text-quest-info" },
+  f2p:               { label: "F2P",               bg: "bg-purple-100",          text: "text-purple-700" },
+  cashback_deferred: { label: "Cashback",          bg: "bg-quest-warning-soft",  text: "text-quest-warning" },
+  no_action:         { label: "No action",         bg: "bg-quest-surface-muted", text: "text-quest-ink-faint" },
+  held_rg:           { label: "RG Hold",           bg: "bg-quest-danger-soft",   text: "text-quest-danger" },
+  blocked_rg:        { label: "RG Block",          bg: "bg-quest-danger-soft",   text: "text-quest-danger" },
+}
+
+const OUTCOME_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  engaged: { label: "Engaged", bg: "bg-quest-success-soft", text: "text-quest-success" },
+  ignored: { label: "Ignored", bg: "bg-quest-surface-muted", text: "text-quest-ink-faint" },
+  pending: { label: "Pending", bg: "bg-quest-warning-soft", text: "text-quest-warning" },
+  churned: { label: "Churned", bg: "bg-quest-danger-soft", text: "text-quest-danger" },
+}
+
+// ---------------------------------------------------------------------------
+// Summary generation — makes each decision read like a human audit log
+// ---------------------------------------------------------------------------
+
+function generateSummary(type: Decision["type"], signals: string[], templateId?: string): string {
+  const tplName = templateId ? TEMPLATE_NAMES[templateId] : null
+
+  switch (type) {
+    case "mission": {
+      if (signals.includes("post-loss") && signals.includes("morning-session"))
+        return `Offered morning free spin after post-loss signal`
+      if (signals.includes("win-streak"))
+        return `Streak mission triggered${tplName ? ` \u00B7 ${tplName}` : ""} \u00B7 riding positive momentum`
+      if (signals.includes("returning-after-gap"))
+        return `Welcome-back mission \u00B7 player returning after absence`
+      if (signals.includes("first-week-player"))
+        return `New player nurture mission${tplName ? ` \u00B7 ${tplName}` : ""}`
+      if (signals.includes("evening-session"))
+        return `Evening engagement mission${tplName ? ` \u00B7 ${tplName}` : ""}`
+      if (signals.includes("slot-preference"))
+        return `Slot-tailored mission \u00B7 matched to game preference`
+      return `Offered mission${tplName ? ` \u00B7 ${tplName}` : ""} \u00B7 standard engagement pattern`
+    }
+    case "bonus": {
+      if (signals.includes("low-engagement-3d"))
+        return `Bonus to re-engage \u00B7 3-day low activity detected`
+      if (signals.includes("vip-tier-upgrade"))
+        return `VIP tier bonus \u00B7 rewarding loyalty progression`
+      if (signals.includes("deposit-decline"))
+        return `Deposit-match bonus \u00B7 countering deposit decline`
+      if (signals.includes("weekend-active"))
+        return `Weekend activity bonus${tplName ? ` \u00B7 ${tplName}` : ""}`
+      return `Bonus offered${tplName ? ` \u00B7 ${tplName}` : ""} \u00B7 engagement incentive`
+    }
+    case "cooldown": {
+      if (signals.includes("session-duration-long"))
+        return `Cooldown period \u00B7 extended session detected, allowing natural break`
+      if (signals.includes("high-frequency-bettor"))
+        return `Cooldown suggested \u00B7 high bet frequency, pacing intervention`
+      return `Cooldown period \u00B7 allowing natural play rhythm`
+    }
+    case "f2p": {
+      if (signals.includes("churn-score-high"))
+        return `Free-to-play offer \u00B7 high churn risk, low-cost re-engagement`
+      if (signals.includes("first-week-player"))
+        return `F2P quiz offered \u00B7 building habit without spend pressure`
+      return `Free-to-play engagement \u00B7 no-cost interaction to maintain connection`
+    }
+    case "cashback_deferred": {
+      if (signals.includes("post-loss"))
+        return `Deferred cashback queued \u00B7 post-loss cushion, releases tomorrow`
+      if (signals.includes("cashout-pattern"))
+        return `Cashback deferred \u00B7 aligned with cashout behaviour pattern`
+      return `Cashback deferred \u00B7 scheduled for next session return`
+    }
+    case "no_action": {
+      if (signals.includes("win-streak"))
+        return `No action taken \u00B7 player in positive streak, no intervention needed`
+      if (signals.includes("multi-game-player"))
+        return `No action \u00B7 healthy multi-game exploration, monitoring only`
+      return `No action \u00B7 player state stable, observation only`
+    }
+    case "held_rg": {
+      const flags = []
+      if (signals.includes("loss-chasing-detected")) flags.push("loss chasing detected")
+      if (signals.includes("stake-escalation")) flags.push("stake escalation")
+      if (signals.includes("session-duration-long")) flags.push("session duration long")
+      return `Held action \u2014 ${flags.join(", ") || "RG signals elevated"} \u00B7 pending review`
+    }
+    case "blocked_rg": {
+      const flags = []
+      if (signals.includes("loss-chasing-detected")) flags.push("loss chasing detected")
+      if (signals.includes("stake-escalation")) flags.push("stake escalation")
+      if (signals.includes("session-duration-long")) flags.push("extended session")
+      return `Blocked \u2014 ${flags.join(", ") || "RG threshold exceeded"} \u00B7 no action permitted`
+    }
+    default:
+      return "Decision recorded"
+  }
+}
+
+function generateAuditNote(type: Decision["type"], signals: string[], rand: () => number): string | null {
+  if (type !== "held_rg" && type !== "blocked_rg") return null
+
+  const notes = [
+    "Automatic hold applied by RG guardrail. Player exceeded loss-chasing threshold (3 consecutive losses with increasing stakes). Manual review required before any further engagement.",
+    "Agent action blocked by responsible gambling policy. Session duration exceeds safe-play limit (180 min) combined with loss-chasing pattern. All promotional actions suspended for this evaluation cycle.",
+    "RG override triggered. Stake escalation detected (2.4x baseline) during extended session. Action held pending compliance review. Player cooling-off period recommended.",
+    "Blocked by safety layer. Multiple risk signals concurrent: loss chasing, high-frequency betting, and deposit decline. No engagement actions permitted until risk score normalises.",
+  ]
+  return notes[Math.floor(rand() * notes.length)]
+}
+
+// ---------------------------------------------------------------------------
+// Data generators
+// ---------------------------------------------------------------------------
+
+function generatePlayerDecisions(playerId: string): (Decision & { summary: string; auditNote: string | null })[] {
   const seed = hashSeed(playerId)
   const rand = seededRandom(seed)
-  const decisions: Decision[] = []
+  const decisions: (Decision & { summary: string; auditNote: string | null })[] = []
   const db = getDB()
   const planIds = db.plans.map((p) => p.id)
 
   const now = new Date()
 
-  for (let i = 0; i < 24; i++) {
+  // Generate 28 decisions spread over 48h
+  for (let i = 0; i < 28; i++) {
     const minutesAgo = Math.floor(rand() * 2880) // up to 48h ago
     const ts = new Date(now.getTime() - minutesAgo * 60000)
 
     const planId = planIds[Math.floor(rand() * planIds.length)]
 
+    // Weight distribution: ensure some held_rg/blocked_rg for safety story
     const type = pickWeighted<Decision["type"]>(
       ["mission", "bonus", "cooldown", "no_action", "f2p", "cashback_deferred", "held_rg", "blocked_rg"],
-      [38, 28, 8, 7, 6, 5, 5, 3],
+      [30, 22, 10, 8, 6, 6, 10, 8],
       rand,
     )
 
@@ -120,8 +231,8 @@ function generatePlayerDecisions(playerId: string): Decision[] {
     if (type === "held_rg" || type === "blocked_rg") {
       signals.length = 0
       signals.push("loss-chasing-detected")
-      if (rand() > 0.5) signals.push("stake-escalation")
-      if (rand() > 0.5) signals.push("session-duration-long")
+      if (rand() > 0.4) signals.push("stake-escalation")
+      if (rand() > 0.4) signals.push("session-duration-long")
     }
 
     let cost = 0
@@ -146,6 +257,9 @@ function generatePlayerDecisions(playerId: string): Decision[] {
       rand,
     )
 
+    const summary = generateSummary(type, signals, missionTemplateId)
+    const auditNote = generateAuditNote(type, signals, rand)
+
     decisions.push({
       id: `player-dec-${i}`,
       agentId: `agent-${planId.replace("plan-", "")}-${String(Math.floor(rand() * 300)).padStart(4, "0")}`,
@@ -159,6 +273,8 @@ function generatePlayerDecisions(playerId: string): Decision[] {
       signals,
       outcome,
       outcomeKnownAt: outcome !== "pending" ? new Date(ts.getTime() + rand() * 1800000).toISOString() : undefined,
+      summary,
+      auditNote,
     })
   }
 
@@ -173,11 +289,17 @@ function generateSignalState(playerId: string) {
   const streakLetters = ["W", "L"]
   const streak = Array.from({ length: 5 }, () => streakLetters[rand() > 0.45 ? 0 : 1])
 
-  const sessionHours = Math.floor(rand() * 4)
-  const sessionMins = Math.floor(rand() * 60)
-
-  const dayparts = ["Morning session", "Afternoon session", "Evening session", "Late night session"]
-  const daypart = dayparts[Math.floor(rand() * dayparts.length)]
+  // Compute current streak label (e.g. "W3" or "L2")
+  let streakLabel = streak[0] + "1"
+  let count = 1
+  for (let i = 1; i < streak.length; i++) {
+    if (streak[i] === streak[i - 1]) {
+      count++
+    } else {
+      break
+    }
+  }
+  streakLabel = `${streak[0]}${count}`
 
   const churnScore = Math.floor(rand() * 100)
 
@@ -188,11 +310,6 @@ function generateSignalState(playerId: string) {
   const depositDays = Math.floor(rand() * 14) + 1
   const depositAmount = Math.floor(rand() * 100) + 10
 
-  const gameTypes = ["Slots", "Sports", "Live casino", "Poker"]
-  const gameWeights = [45, 25, 20, 10]
-  const favGame = pickWeighted(gameTypes, gameWeights, rand)
-  const favPct = Math.floor(rand() * 40 + 55)
-
   const stakeBands = ["Low", "Medium", "High", "VIP"] as const
   const stakeBand = pickWeighted([...stakeBands], [30, 40, 20, 10], rand)
 
@@ -200,33 +317,289 @@ function generateSignalState(playerId: string) {
   const lifecycle = pickWeighted([...lifecycles], [15, 40, 25, 10, 10], rand)
 
   const rgTiers = ["None", "Monitored", "Restricted"] as const
-  const rgTier = pickWeighted([...rgTiers], [80, 15, 5], rand)
+  const rgTier = pickWeighted([...rgTiers], [70, 20, 10], rand)
 
   const daysSinceSignup = Math.floor(rand() * 365) + 7
 
   const planNames = ["Recreational retention", "Weekend win-back", "New player nurture", "VIP growth programme"]
-  const assignedPlans = planNames.filter(() => rand() > 0.5)
-  if (assignedPlans.length === 0) assignedPlans.push(planNames[0])
+  const planColors = ["bg-quest-accent", "bg-quest-info", "bg-quest-success", "bg-quest-warning"]
+  const assignedPlans = planNames
+    .map((name, idx) => ({ name, color: planColors[idx] }))
+    .filter(() => rand() > 0.45)
+  if (assignedPlans.length === 0) assignedPlans.push({ name: planNames[0], color: planColors[0] })
 
   const nextEvalMins = Math.floor(rand() * 8) + 2
 
+  const ltvMonthly = parseFloat((rand() * 120 + 15).toFixed(2))
+
+  const states = ["active", "cooldown", "held"] as const
+  const playerState = pickWeighted([...states], [70, 20, 10], rand)
+
+  const safetyCount = Math.floor(rand() * 8)
+
+  // Session state seed — will be overridden by ticker
+  const sessionStates = ["in_session", "away", "idle"] as const
+  const initialSession = pickWeighted([...sessionStates], [50, 30, 20], rand)
+
+  // Next eval conditions
+  const conditions = [
+    "churn score exceeds 75",
+    "session ends without engagement",
+    "stake escalation detected",
+    "30-min inactivity window",
+    "deposit-to-loss ratio exceeds 2:1",
+  ]
+  const nextConditions = conditions.filter(() => rand() > 0.55)
+  if (nextConditions.length === 0) nextConditions.push(conditions[0])
+
   return {
     streak,
-    sessionLength: `${sessionHours}h ${String(sessionMins).padStart(2, "0")}m`,
-    daypart,
+    streakLabel,
     churnScore,
     rgFlags,
     lastDeposit: { amount: depositAmount, daysAgo: depositDays },
-    favGame,
-    favPct,
     stakeBand,
     lifecycle,
     rgTier,
     daysSinceSignup,
     assignedPlans,
     nextEvalMins,
+    ltvMonthly,
+    playerState,
+    safetyCount,
+    initialSession,
+    nextConditions,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Date/time helpers
+// ---------------------------------------------------------------------------
+
+function formatTime(isoString: string) {
+  const d = new Date(isoString)
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+}
+
+function getDateGroup(isoString: string): string {
+  const d = new Date(isoString)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 86400000)
+  const entryDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+
+  if (entryDay.getTime() === today.getTime()) return "Today"
+  if (entryDay.getTime() === yesterday.getTime()) return "Yesterday"
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })
+}
+
+// ---------------------------------------------------------------------------
+// Component: Timeline Entry
+// ---------------------------------------------------------------------------
+
+type DecisionEntry = Decision & { summary: string; auditNote: string | null }
+
+function TimelineEntry({ decision }: { decision: DecisionEntry }) {
+  const [expanded, setExpanded] = useState(false)
+  const chip = CHIP_CONFIG[decision.type]
+  const isRg = decision.type === "held_rg" || decision.type === "blocked_rg"
+  const outcomeConf = decision.outcome ? OUTCOME_CONFIG[decision.outcome] : null
+  const isNoAction = decision.type === "no_action"
+
+  return (
+    <div
+      className={`group relative flex items-start gap-3 py-3 cursor-pointer transition-colors hover:bg-quest-surface-muted/40 -mx-4 px-4 rounded ${
+        isRg ? "border-l-4 border-l-quest-danger bg-quest-danger-soft/30" : ""
+      }`}
+      onClick={() => setExpanded(!expanded)}
+    >
+      {/* Timestamp */}
+      <div className="w-11 shrink-0 pt-0.5 text-right">
+        <span className={`text-[12px] tabular-nums ${isNoAction ? "text-quest-ink-faint/60" : "text-quest-ink-faint"}`}>
+          {formatTime(decision.timestamp)}
+        </span>
+      </div>
+
+      {/* Archetype chip */}
+      <div className="shrink-0 pt-px">
+        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${chip.bg} ${chip.text}`}>
+          {chip.label}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-[13px] leading-snug ${isNoAction ? "text-quest-ink-muted" : "text-quest-ink"} ${isRg ? "font-medium" : ""}`}>
+            {decision.summary}
+          </p>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Cost */}
+            {decision.cost > 0 ? (
+              <span className={`text-[12px] tabular-nums font-medium ${isNoAction ? "text-quest-ink-faint" : "text-quest-ink-muted"}`}>
+                {"\u00A3"}{decision.cost.toFixed(2)}
+                {decision.costState === "deferred" && (
+                  <span className="ml-0.5 text-[10px] text-quest-warning">(def)</span>
+                )}
+              </span>
+            ) : (
+              <span className="text-[12px] text-quest-ink-faint">{"\u2014"}</span>
+            )}
+
+            {/* Outcome badge */}
+            {outcomeConf && (
+              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${outcomeConf.bg} ${outcomeConf.text}`}>
+                {outcomeConf.label}
+              </span>
+            )}
+
+            {/* Expand indicator */}
+            <span className="text-quest-ink-faint opacity-0 group-hover:opacity-100 transition-opacity">
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </span>
+          </div>
+        </div>
+
+        {/* Expanded detail */}
+        {expanded && (
+          <div className="mt-3 space-y-2.5 border-t border-border/50 pt-3">
+            {/* Signals */}
+            <div>
+              <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Triggering signals</span>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {decision.signals.map((sig) => (
+                  <span
+                    key={sig}
+                    className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      sig === "loss-chasing-detected" || sig === "stake-escalation"
+                        ? "bg-quest-danger-soft text-quest-danger"
+                        : sig === "session-duration-long"
+                        ? "bg-quest-warning-soft text-quest-warning"
+                        : "bg-quest-surface-muted text-quest-ink-muted"
+                    }`}
+                  >
+                    {sig}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Template */}
+            {decision.missionTemplateId && (
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Template</span>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="text-[12px] text-quest-ink-muted">
+                    {TEMPLATE_NAMES[decision.missionTemplateId] || decision.missionTemplateId}
+                  </span>
+                  <span className="text-[10px] text-quest-ink-faint font-mono">{decision.missionTemplateId}</span>
+                  <ExternalLink size={10} className="text-quest-ink-faint" />
+                </div>
+              </div>
+            )}
+
+            {/* Audit note for safety events */}
+            {decision.auditNote && (
+              <div className="rounded border border-quest-danger/20 bg-quest-danger-soft/40 p-2.5">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert size={13} className="text-quest-danger mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wide font-medium text-quest-danger">Safety audit note</span>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-quest-ink-muted">
+                      {decision.auditNote}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Component: Session State Indicator (live-updating)
+// ---------------------------------------------------------------------------
+
+function SessionIndicator({ initial }: { initial: "in_session" | "away" | "idle" }) {
+  const [state, setState] = useState(initial)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const states: ("in_session" | "away" | "idle")[] = ["in_session", "away", "idle"]
+      const weights = state === "in_session" ? [60, 30, 10] : state === "away" ? [35, 40, 25] : [25, 30, 45]
+      const total = weights.reduce((a, b) => a + b, 0)
+      let r = Math.random() * total
+      for (let i = 0; i < states.length; i++) {
+        r -= weights[i]
+        if (r <= 0) { setState(states[i]); break }
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [state])
+
+  const config = {
+    in_session: { label: "In session", dotClass: "bg-quest-success", ringClass: "ring-quest-success/30" },
+    away:       { label: "Away",       dotClass: "bg-quest-warning", ringClass: "ring-quest-warning/30" },
+    idle:       { label: "Idle",       dotClass: "bg-quest-ink-faint", ringClass: "ring-quest-ink-faint/20" },
+  }
+  const c = config[state]
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`relative flex h-2.5 w-2.5`}>
+        {state === "in_session" && (
+          <span className={`absolute inset-0 animate-ping rounded-full ${c.dotClass} opacity-40`} />
+        )}
+        <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${c.dotClass} ring-2 ${c.ringClass}`} />
+      </span>
+      <span className="text-[13px] font-medium text-quest-ink">{c.label}</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Component: Churn Score (live-drifting)
+// ---------------------------------------------------------------------------
+
+function ChurnScore({ initial }: { initial: number }) {
+  const [score, setScore] = useState(initial)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setScore((prev) => {
+        const drift = Math.floor((Math.random() - 0.45) * 6)
+        return Math.max(0, Math.min(100, prev + drift))
+      })
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const barColor = score < 40 ? "bg-quest-success" : score < 70 ? "bg-quest-warning" : "bg-quest-danger"
+  const textColor = score < 40 ? "text-quest-success" : score < 70 ? "text-quest-warning" : "text-quest-danger"
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className={`text-[20px] font-semibold tabular-nums ${textColor}`}>{score}</span>
+        <span className="text-[11px] text-quest-ink-faint">/ 100</span>
+      </div>
+      <div className="mt-1.5 h-1.5 w-full rounded-full bg-quest-surface-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main Page
+// ---------------------------------------------------------------------------
 
 export default function AgentDetailPage({
   params,
@@ -239,26 +612,27 @@ export default function AgentDetailPage({
   const decisions = useMemo(() => generatePlayerDecisions(playerId), [playerId])
   const signals = useMemo(() => generateSignalState(playerId), [playerId])
 
-  function formatTime(isoString: string) {
-    const d = new Date(isoString)
-    return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-  }
+  // Group decisions by date
+  const groupedDecisions = useMemo(() => {
+    const groups: { label: string; entries: DecisionEntry[] }[] = []
+    let currentLabel = ""
+    for (const d of decisions) {
+      const label = getDateGroup(d.timestamp)
+      if (label !== currentLabel) {
+        groups.push({ label, entries: [] })
+        currentLabel = label
+      }
+      groups[groups.length - 1].entries.push(d)
+    }
+    return groups
+  }, [decisions])
 
-  function formatDate(isoString: string) {
-    const d = new Date(isoString)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    if (diffMins < 60) return `${diffMins}m ago`
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-  }
-
-  const isRgType = (type: Decision["type"]) => type === "held_rg" || type === "blocked_rg"
+  // Summary counts
+  const safetyDecisions = decisions.filter((d) => d.type === "held_rg" || d.type === "blocked_rg").length
+  const totalSpend = decisions.reduce((sum, d) => sum + d.cost, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Back link */}
       <button
         onClick={() => router.push("/agents")}
@@ -268,262 +642,253 @@ export default function AgentDetailPage({
         Agents
       </button>
 
-      {/* Player card */}
-      <div className="rounded-lg border border-border bg-card p-5">
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-          <div>
-            <h1 className="text-[32px] font-medium text-quest-ink">#{playerId}</h1>
+      {/* Three-column layout */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_1fr_280px]">
+
+        {/* ============================================================= */}
+        {/* LEFT COLUMN — Player context (sticky)                         */}
+        {/* ============================================================= */}
+        <div className="xl:sticky xl:top-4 xl:self-start space-y-4">
+
+          {/* Player ID + status */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-[28px] font-semibold text-quest-ink tracking-tight">#{playerId}</h1>
+              <StatusPill status={signals.playerState} />
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-quest-ink-faint">Stake band</span>
-              <span className="text-[14px] font-medium text-quest-ink">{signals.stakeBand}</span>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-quest-ink-faint">Lifecycle</span>
-              <span className="text-[14px] font-medium text-quest-ink">{signals.lifecycle}</span>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-quest-ink-faint">RG tier</span>
-              <span className="text-[14px] font-medium text-quest-ink">
-                {signals.rgTier === "Monitored" ? (
-                  <QuestBadge variant="rg_caution">MONITORED</QuestBadge>
-                ) : signals.rgTier === "Restricted" ? (
-                  <QuestBadge variant="rg_hold">RESTRICTED</QuestBadge>
-                ) : (
-                  "None"
-                )}
-              </span>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-quest-ink-faint">Days since signup</span>
-              <span className="text-[14px] font-medium text-quest-ink">{signals.daysSinceSignup}</span>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-quest-ink-faint">Plans</span>
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {signals.assignedPlans.map((p) => (
-                  <QuestBadge key={p} variant="info">{p}</QuestBadge>
-                ))}
+
+          {/* Meta grid */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-[11px] uppercase tracking-wide text-quest-ink-faint mb-3">Player profile</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Stake band</span>
+                <p className="text-[13px] font-medium text-quest-ink mt-0.5">{signals.stakeBand}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Lifecycle</span>
+                <p className="text-[13px] font-medium text-quest-ink mt-0.5">{signals.lifecycle}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">RG tier</span>
+                <div className="mt-0.5">
+                  {signals.rgTier === "Monitored" ? (
+                    <QuestBadge variant="rg_caution">Monitored</QuestBadge>
+                  ) : signals.rgTier === "Restricted" ? (
+                    <QuestBadge variant="rg_hold">Restricted</QuestBadge>
+                  ) : (
+                    <span className="text-[13px] text-quest-ink-muted">None</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Since signup</span>
+                <p className="text-[13px] font-medium text-quest-ink mt-0.5">{signals.daysSinceSignup}d</p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Plans</span>
+                <p className="text-[13px] font-medium text-quest-ink mt-0.5">{signals.assignedPlans.length}</p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[65%_35%]">
-        {/* Left: Decision timeline */}
-        <div className="rounded-lg border border-border bg-card p-5">
-          <h2 className="mb-4 text-[16px] font-medium text-quest-ink">Decision timeline</h2>
+          {/* Safety card */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[11px] uppercase tracking-wide text-quest-ink-faint">Safety interventions</h3>
+              <span className="text-[10px] text-quest-ink-faint">last 30 days</span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-[24px] font-semibold tabular-nums ${
+                signals.safetyCount > 0 ? "text-quest-danger" : "text-quest-success"
+              }`}>
+                {signals.safetyCount}
+              </span>
+              {safetyDecisions > 0 && (
+                <span className="text-[11px] text-quest-ink-faint">
+                  ({safetyDecisions} in last 48h)
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] text-quest-ink-faint leading-relaxed">
+              Includes holds, blocks, and cooldowns triggered by responsible gambling guardrails.
+            </p>
+          </div>
 
-          <div className="relative">
-            {/* Vertical connecting line */}
-            <div className="absolute left-[83px] top-2 bottom-2 w-px bg-border" />
-
-            <div className="space-y-0">
-              {decisions.map((d, idx) => {
-                const config = DECISION_CONFIG[d.type]
-                const outcomeConf = d.outcome ? OUTCOME_CONFIG[d.outcome] : null
-                const isRg = isRgType(d.type)
-
-                return (
-                  <div
-                    key={d.id}
-                    className={`relative flex gap-4 py-3 ${idx < decisions.length - 1 ? "border-b border-border/50" : ""} ${isRg ? "bg-quest-danger-soft/50 -mx-5 px-5 rounded" : ""}`}
-                  >
-                    {/* Timestamp */}
-                    <div className="w-16 shrink-0 pt-0.5 text-right">
-                      <span className="text-[12px] text-quest-ink-faint">{formatDate(d.timestamp)}</span>
-                      <br />
-                      <span className="text-[11px] text-quest-ink-faint">{formatTime(d.timestamp)}</span>
-                    </div>
-
-                    {/* Dot */}
-                    <div className="relative z-10 flex shrink-0 items-start pt-1">
-                      <div className={`flex h-5 w-5 items-center justify-center rounded-full ${config.colorClass} text-white`}>
-                        {config.icon}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-[13px] font-medium ${isRg ? "text-quest-danger" : "text-quest-ink"}`}>
-                          {config.label}
-                        </span>
-                        {d.cost > 0 && (
-                          <span className="text-[12px] tabular-nums text-quest-ink-muted">
-                            {"\u00A3"}{d.cost.toFixed(2)}
-                            {d.costState === "deferred" && (
-                              <span className="ml-1 text-quest-warning">(deferred)</span>
-                            )}
-                          </span>
-                        )}
-                        {outcomeConf && (
-                          <span className={`text-[12px] font-medium ${outcomeConf.colorClass}`}>
-                            {outcomeConf.label}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Signals */}
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {d.signals.map((sig) => (
-                          <span
-                            key={sig}
-                            className="inline-flex rounded px-1.5 py-0.5 text-[10px] bg-quest-surface-muted text-quest-ink-faint"
-                          >
-                            {sig}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+          {/* Plans this player is in */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-[11px] uppercase tracking-wide text-quest-ink-faint mb-3">Active plans</h3>
+            <div className="space-y-2">
+              {signals.assignedPlans.map((plan) => (
+                <div key={plan.name} className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${plan.color} shrink-0`} />
+                  <span className="text-[12px] text-quest-ink">{plan.name}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Right: Signal state panel */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        {/* ============================================================= */}
+        {/* MIDDLE COLUMN — Timeline                                      */}
+        {/* ============================================================= */}
+        <div className="min-w-0">
           <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="mb-4 text-[14px] font-medium uppercase tracking-wide text-quest-ink-faint">
-              Live signal state
-            </h3>
-
-            <div className="space-y-4">
-              {/* Win/loss streak */}
+            {/* Timeline header */}
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[15px] font-medium text-quest-ink">Decision timeline</h2>
               <div className="flex items-center gap-3">
-                <Activity size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Win/loss streak</span>
-                  <div className="mt-0.5 flex gap-1">
-                    {signals.streak.map((letter, i) => (
-                      <span
-                        key={i}
-                        className={`inline-flex h-6 w-6 items-center justify-center rounded text-[12px] font-bold ${
-                          letter === "W"
-                            ? "bg-quest-success-soft text-quest-success"
-                            : "bg-quest-danger-soft text-quest-danger"
-                        }`}
-                      >
-                        {letter}
-                      </span>
+                <span className="text-[11px] text-quest-ink-faint tabular-nums">
+                  {decisions.length} decisions
+                </span>
+                <span className="text-[11px] text-quest-ink-faint tabular-nums">
+                  {"\u00A3"}{totalSpend.toFixed(2)} total cost
+                </span>
+              </div>
+            </div>
+            <p className="text-[12px] text-quest-ink-faint mb-4">
+              Last 48 hours of agent decisions for this player. Click any row to expand.
+            </p>
+
+            {/* Timeline body */}
+            <div className="space-y-0">
+              {groupedDecisions.map((group) => (
+                <div key={group.label}>
+                  {/* Sticky date header */}
+                  <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm -mx-5 px-5 py-2 border-b border-border/50">
+                    <span className="text-[11px] uppercase tracking-widest font-semibold text-quest-ink-faint">
+                      {group.label}
+                    </span>
+                  </div>
+
+                  {/* Entries */}
+                  <div className="divide-y divide-border/30">
+                    {group.entries.map((d) => (
+                      <TimelineEntry key={d.id} decision={d} />
                     ))}
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-              {/* Session length */}
-              <div className="flex items-center gap-3">
-                <Clock size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Session length</span>
-                  <p className="text-[14px] font-medium text-quest-ink">{signals.sessionLength}</p>
+        {/* ============================================================= */}
+        {/* RIGHT COLUMN — Live signal state (sticky)                     */}
+        {/* ============================================================= */}
+        <div className="xl:sticky xl:top-4 xl:self-start space-y-4">
+
+          {/* What the agent is reading right now */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-[11px] uppercase tracking-wide text-quest-ink-faint mb-4">
+              What the agent reads now
+            </h3>
+
+            <div className="space-y-4">
+              {/* Session state */}
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Session</span>
+                <div className="mt-1">
+                  <SessionIndicator initial={signals.initialSession} />
                 </div>
               </div>
 
-              {/* Time of day */}
-              <div className="flex items-center gap-3">
-                <Sun size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Time of day</span>
-                  <p className="text-[14px] font-medium text-quest-ink">{signals.daypart}</p>
+              {/* Win/loss streak */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Win/loss streak</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${
+                    signals.streakLabel.startsWith("W") ? "text-quest-success" : "text-quest-danger"
+                  }`}>
+                    {signals.streakLabel}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex gap-1">
+                  {signals.streak.map((letter, i) => (
+                    <span
+                      key={i}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold ${
+                        letter === "W"
+                          ? "bg-quest-success-soft text-quest-success"
+                          : "bg-quest-danger-soft text-quest-danger"
+                      }`}
+                    >
+                      {letter}
+                    </span>
+                  ))}
                 </div>
               </div>
 
               {/* Churn score */}
-              <div className="flex items-center gap-3">
-                <TrendingDown size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Churn score</span>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <span className="text-[14px] font-medium tabular-nums text-quest-ink">
-                      {signals.churnScore}/100
-                    </span>
-                    <div className="h-1.5 flex-1 rounded-full bg-quest-surface-muted">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          signals.churnScore > 75
-                            ? "bg-quest-danger"
-                            : signals.churnScore > 50
-                            ? "bg-quest-warning"
-                            : "bg-quest-success"
-                        }`}
-                        style={{ width: `${signals.churnScore}%` }}
-                      />
-                    </div>
-                  </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Churn score</span>
+                <div className="mt-1">
+                  <ChurnScore initial={signals.churnScore} />
                 </div>
               </div>
 
-              {/* RG flags */}
-              <div className="flex items-center gap-3">
-                <Flag size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">RG flags</span>
-                  <p className="text-[14px] font-medium text-quest-ink">
-                    {signals.rgFlags.length > 0 ? (
-                      <span className="flex gap-1.5">
-                        {signals.rgFlags.map((f) => (
-                          <QuestBadge key={f} variant="rg_caution">{f}</QuestBadge>
-                        ))}
-                      </span>
-                    ) : (
-                      "None"
-                    )}
-                  </p>
-                </div>
+              {/* LTV prediction */}
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">LTV prediction</span>
+                <p className="text-[16px] font-semibold tabular-nums text-quest-ink mt-0.5">
+                  {"\u00A3"}{signals.ltvMonthly.toFixed(2)}
+                  <span className="text-[11px] font-normal text-quest-ink-faint ml-1">/ month</span>
+                </p>
               </div>
 
               {/* Last deposit */}
-              <div className="flex items-center gap-3">
-                <Banknote size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Last deposit</span>
-                  <p className="text-[14px] font-medium text-quest-ink">
-                    {"\u00A3"}{signals.lastDeposit.amount} &middot; {signals.lastDeposit.daysAgo} days ago
-                  </p>
-                </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Last deposit</span>
+                <p className="text-[13px] font-medium text-quest-ink mt-0.5">
+                  {signals.lastDeposit.daysAgo} days ago{" "}
+                  <span className="text-quest-ink-muted">{"\u00B7"}</span>{" "}
+                  <span className="tabular-nums">{"\u00A3"}{signals.lastDeposit.amount}</span>
+                </p>
               </div>
 
-              {/* Favourite game */}
-              <div className="flex items-center gap-3">
-                <Heart size={16} className="shrink-0 text-quest-ink-faint" />
-                <div className="flex-1">
-                  <span className="text-[12px] text-quest-ink-faint">Favourite game type</span>
-                  <p className="text-[14px] font-medium text-quest-ink">
-                    {signals.favGame} ({signals.favPct}%)
-                  </p>
+              {/* RG flags */}
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">RG flags</span>
+                <div className="mt-1">
+                  {signals.rgFlags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {signals.rgFlags.map((f) => (
+                        <QuestBadge key={f} variant="rg_caution">{f}</QuestBadge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[13px] text-quest-ink-muted">None</span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           {/* What happens next */}
-          <div className="rounded-lg border border-border border-l-4 border-l-quest-accent bg-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Brain size={16} className="text-quest-accent" />
-              <h3 className="text-[14px] font-medium text-quest-ink">What happens next</h3>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-quest-accent" />
-                <p className="text-[13px] text-quest-ink-muted">
-                  Next evaluation: ~{signals.nextEvalMins} minutes
+          <div className="rounded-lg border border-border border-l-4 border-l-quest-accent bg-card p-4">
+            <h3 className="text-[11px] uppercase tracking-wide text-quest-accent font-semibold mb-3">
+              What happens next
+            </h3>
+
+            <div className="space-y-3">
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Next evaluation</span>
+                <p className="text-[15px] font-semibold text-quest-ink mt-0.5 tabular-nums">
+                  ~{signals.nextEvalMins} minutes
                 </p>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-quest-accent" />
-                <p className="text-[13px] text-quest-ink-muted">
-                  Will trigger if: churn score exceeds 75 or session ends without engagement
-                </p>
+
+              <div>
+                <span className="text-[10px] uppercase tracking-wide text-quest-ink-faint">Will trigger if</span>
+                <ul className="mt-1 space-y-1.5">
+                  {signals.nextConditions.map((cond) => (
+                    <li key={cond} className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-quest-accent" />
+                      <span className="text-[12px] leading-snug text-quest-ink-muted">{cond}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>

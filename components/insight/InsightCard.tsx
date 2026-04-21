@@ -7,6 +7,7 @@ type InsightCardProps = {
   actionLabel?: string
   onAction?: () => void
   icon?: React.ReactNode
+  accent?: boolean
 }
 
 export function InsightCard({
@@ -16,9 +17,13 @@ export function InsightCard({
   actionLabel,
   onAction,
   icon,
+  accent = false,
 }: InsightCardProps) {
   return (
-    <div className="rounded-lg border border-border bg-card border-l-4 border-l-quest-accent p-4">
+    <div className={cn(
+      "rounded-lg border border-border bg-card border-l-4 p-4",
+      accent ? "border-l-quest-accent" : "border-l-border"
+    )}>
       <div className="flex gap-3">
         {icon && (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-quest-accent-soft text-quest-accent">

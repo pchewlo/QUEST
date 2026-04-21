@@ -9,7 +9,6 @@ import {
   Lightbulb,
   FileText,
   Shield,
-  Settings,
 } from "lucide-react"
 
 const navItems = [
@@ -19,7 +18,6 @@ const navItems = [
   { label: "Insights", href: "/insights", icon: Lightbulb },
   { label: "Templates", href: "/templates", icon: FileText },
   { label: "Safety", href: "/safety", icon: Shield },
-  { label: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function Sidebar() {

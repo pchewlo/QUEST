@@ -323,31 +323,28 @@ export default function PlanDetailPage({
         />
       </div>
 
-      {/* Control comparison callout */}
-      <div className="rounded-lg border border-quest-accent/20 bg-quest-accent-soft/20 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">Rules-based control</span>
-              <span className="text-[20px] font-medium tabular-nums text-quest-ink-muted">+{comparison.control.toFixed(1)}%</span>
-              <span className="text-[11px] text-quest-ink-faint">retention</span>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-accent">QUEST AI</span>
-              <span className="text-[20px] font-medium tabular-nums text-quest-accent">+{comparison.quest.toFixed(1)}%</span>
-              <span className="text-[11px] text-quest-ink-faint">retention</span>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-success">Incremental lift</span>
-              <span className="text-[20px] font-medium tabular-nums text-quest-success">+{comparison.lift.toFixed(1)}pp</span>
-              <span className="text-[11px] text-quest-ink-faint">above control</span>
-            </div>
-          </div>
-          <div className="text-[12px] text-quest-ink-faint max-w-[180px] text-right">
-            {plan.controlGroupPct}% holdout group &middot; {plan.status === 'calibrating' ? 'Gathering signal' : 'Statistically significant'}
-          </div>
+      {/* Control comparison strip */}
+      <div className="rounded-lg bg-quest-surface-muted px-4 py-2.5">
+        <div className="flex items-center gap-1.5 text-[12px]">
+          <span className="text-quest-ink-muted">
+            Plan performance vs. control (held-out {plan.controlGroupPct}% of cohort)
+          </span>
+          <span className="text-quest-ink-faint mx-1">&mdash;</span>
+          <span className="font-medium" style={{ color: "#7A3029" }}>
+            QUEST: +{comparison.quest.toFixed(1)}% retention
+          </span>
+          <span className="text-quest-ink-faint">&middot;</span>
+          <span className="text-quest-ink-muted">
+            Control: +{comparison.control.toFixed(1)}%
+          </span>
+          <span className="text-quest-ink-faint">&middot;</span>
+          <span className="font-medium text-quest-success">
+            Lift: +{comparison.lift.toFixed(1)}pp
+          </span>
+          <span className="text-quest-ink-faint">&middot;</span>
+          <span className="text-quest-ink-muted">
+            Confidence: {plan.status === 'calibrating' ? 'gathering signal' : `high (${daysAgo} days)`}
+          </span>
         </div>
       </div>
 

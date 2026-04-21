@@ -47,6 +47,7 @@ export default function CreatePlanPage() {
     complianceReviewRequired: false,
   })
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
+  const [controlGroupPct, setControlGroupPct] = useState(10)
 
   const cohortSize = useMemo(() => estimateCohortSize(cohortFilter), [cohortFilter])
 
@@ -136,7 +137,7 @@ export default function CreatePlanPage() {
       },
       guardrails,
       templatePoolIds: selectedTemplates,
-      controlGroupPct: 15,
+      controlGroupPct,
     }
 
     db.addPlan(newPlan)
@@ -158,7 +159,7 @@ export default function CreatePlanPage() {
       cohortFilter: cohortFilter,
       guardrails,
       templatePoolIds: selectedTemplates,
-      controlGroupPct: 15,
+      controlGroupPct,
     }
 
     db.addPlan(newPlan)
@@ -197,6 +198,8 @@ export default function CreatePlanPage() {
               perPlayerCap={perPlayerCap}
               onDailyBudgetChange={handleBudgetDailyChange}
               onPerPlayerCapChange={handleBudgetCapChange}
+              controlGroupPct={controlGroupPct}
+              onControlGroupPctChange={setControlGroupPct}
             />
 
             {/* Step 3: Cohort */}
@@ -274,6 +277,12 @@ export default function CreatePlanPage() {
                 ) : (
                   <span className="text-[14px] text-quest-ink-faint italic">Not configured</span>
                 )}
+              </div>
+
+              {/* Control group */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">Control group</span>
+                <span className="text-[14px] tabular-nums text-quest-ink">{controlGroupPct}% held out</span>
               </div>
 
               {/* Cohort */}

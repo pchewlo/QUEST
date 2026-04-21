@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { KPICard } from "@/components/KPICard"
@@ -40,6 +40,18 @@ export default function OverviewPage() {
   const plans = db.plans
   const timeSeries = db.getAggregateTimeSeries()
 
+  // Chart toggle state
+  const [chartToggles, setChartToggles] = useState<Record<string, boolean>>({
+    spend: true,
+    retentionLift: true,
+    activeAgents: false,
+    safetyInterventions: false,
+  })
+
+  function toggleSeries(key: string) {
+    setChartToggles((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
   // Last 7 days for the chart
   const chartData = useMemo(() => {
     const last7 = timeSeries.slice(-7)
@@ -47,8 +59,20 @@ export default function OverviewPage() {
       date: point.date.slice(5), // "04-14" format
       spend: Math.round(point.spend),
       retentionLift: point.retentionLift,
+      activeAgents: Math.round(point.activeAgents / 1000 * 10) / 10,
+      safetyInterventions: point.safetyInterventions,
     }))
   }, [timeSeries])
+
+  // Build visible series list from toggle state
+  const allSeriesDefs = [
+    { key: "spend", label: "Spend (\u00A3)", color: "#7A3029", type: "area" as const },
+    { key: "retentionLift", label: "Retention lift (%)", color: "#3B6D2E", type: "line" as const },
+    { key: "activeAgents", label: "Active agents (k)", color: "#185FA5", type: "line" as const },
+    { key: "safetyInterventions", label: "Safety interventions", color: "#854F0B", type: "line" as const },
+  ]
+
+  const visibleSeries = allSeriesDefs.filter((s) => chartToggles[s.key])
 
   // Plan table data — enrich with computed stats
   const planTableData = useMemo(() => {
@@ -118,7 +142,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-6 gap-4">
         <KPICard
           label="Active agents"
           value={formatNumber(kpis.activeAgents)}
@@ -137,14 +161,42 @@ export default function OverviewPage() {
           delta="-8.2% vs. last week"
           deltaType="positive"
         />
-        <KPICard
-          label="Retention lift"
-          value={kpis.retentionLift.toFixed(1)}
-          suffix="%"
-          delta="vs. control"
-          deltaType="positive"
-          subtitle="+18.4pp above baseline"
-        />
+
+        {/* Double-width retention comparison card */}
+        <div className="col-span-2 rounded-lg border border-border bg-card p-4">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
+            Retention lift
+          </span>
+          <div className="mt-2 grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
+                QUEST
+              </span>
+              <span className="text-[24px] font-medium tabular-nums" style={{ color: "#7A3029" }}>
+                +{kpis.retentionLift.toFixed(1)}%
+              </span>
+              <span className="text-[11px] text-quest-ink-faint">7-day retention</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
+                Rules-based control
+              </span>
+              <span className="text-[24px] font-medium tabular-nums text-quest-ink-muted">
+                +4.2%
+              </span>
+              <span className="text-[11px] text-quest-ink-faint">(same cohort, held out)</span>
+            </div>
+          </div>
+          <div className="mt-2 border-t border-border pt-2">
+            <span className="text-[13px] font-medium tabular-nums text-quest-ink">
+              Lift: +{(kpis.retentionLift - 4.2).toFixed(1)} percentage points
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] text-quest-ink-faint">
+            Control group is 10% of each plan&apos;s cohort, held out and managed by rules-based system.
+          </p>
+        </div>
+
         <KPICard
           label="Safety interventions"
           value={kpis.safetyToday}
@@ -157,24 +209,49 @@ export default function OverviewPage() {
       <div className="grid grid-cols-3 gap-4">
         {/* Left: Performance chart */}
         <div className="col-span-2 rounded-lg border border-border bg-card p-4">
-          <h2 className="mb-3 text-[15px] font-medium text-quest-ink">
-            Performance &middot; last 7 days
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[15px] font-medium text-quest-ink">
+              Performance &middot; last 7 days
+            </h2>
+            <div className="flex items-center gap-1.5">
+              {allSeriesDefs.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={() => toggleSeries(s.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    chartToggles[s.key]
+                      ? "text-white"
+                      : "border border-border bg-card text-quest-ink-muted hover:bg-quest-surface-muted"
+                  }`}
+                  style={chartToggles[s.key] ? { backgroundColor: s.color } : undefined}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: chartToggles[s.key] ? "#fff" : s.color }}
+                  />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <AreaChartComponent
             data={chartData}
             xKey="date"
-            series={[
-              { key: "spend", label: "Spend (\u00A3)", color: "#7A3029", type: "area" },
-              { key: "retentionLift", label: "Retention lift (%)", color: "#3B6D2E", type: "line" },
-            ]}
-            height={300}
+            series={visibleSeries}
+            height={360}
             yAxisLeft="Spend (\u00A3)"
-            yAxisRight="Retention (%)"
+            yAxisRight="Retention lift (%)"
+            referenceLine={{
+              value: 4.2,
+              label: "Control baseline",
+              color: "#9CA3AF",
+              yAxisId: "right",
+            }}
           />
         </div>
 
         {/* Right: Live feed */}
-        <div className="col-span-1 flex flex-col [&>div]:flex-1 [&>div]:max-h-[380px]">
+        <div className="col-span-1 flex flex-col [&>div]:flex-1 [&>div]:max-h-[440px]">
           <LiveFeed decisions={liveFeed} maxItems={20} />
         </div>
       </div>

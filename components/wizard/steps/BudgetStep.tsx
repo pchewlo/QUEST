@@ -7,6 +7,8 @@ type BudgetStepProps = {
   perPlayerCap: number
   onDailyBudgetChange: (value: number) => void
   onPerPlayerCapChange: (value: number) => void
+  controlGroupPct: number
+  onControlGroupPctChange: (value: number) => void
 }
 
 export function BudgetStep({
@@ -14,6 +16,8 @@ export function BudgetStep({
   perPlayerCap,
   onDailyBudgetChange,
   onPerPlayerCapChange,
+  controlGroupPct,
+  onControlGroupPctChange,
 }: BudgetStepProps) {
   const projections = useMemo(() => {
     if (!dailyBudget || !perPlayerCap) {
@@ -24,6 +28,12 @@ export function BudgetStep({
     const calibrationDays = Math.max(3, Math.ceil(14 - Math.log2(estimatedAgents + 1) * 2))
     return { estimatedAgents, calibrationDays }
   }, [dailyBudget, perPlayerCap])
+
+  const heldOutPlayers = useMemo(() => {
+    if (!dailyBudget || !perPlayerCap || !controlGroupPct) return 0
+    const totalPlayers = Math.floor(dailyBudget / perPlayerCap)
+    return Math.round(totalPlayers * controlGroupPct / 100)
+  }, [dailyBudget, perPlayerCap, controlGroupPct])
 
   return (
     <div className="flex gap-6">
@@ -76,6 +86,35 @@ export function BudgetStep({
           </div>
           <span className="text-[11px] text-quest-ink-faint">
             Maximum spend on any single player per day
+          </span>
+        </div>
+
+        {/* Control group slider */}
+        <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
+          <label className="text-[12px] font-medium uppercase tracking-wide text-quest-ink-faint">
+            Control group size
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={25}
+              step={1}
+              value={controlGroupPct}
+              onChange={(e) => onControlGroupPctChange(Number(e.target.value))}
+              className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-border accent-quest-accent [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-quest-accent"
+            />
+            <span className="w-10 text-right text-[14px] font-medium tabular-nums text-quest-ink">
+              {controlGroupPct}%
+            </span>
+          </div>
+          <span className="text-[12px] text-quest-ink-muted">
+            {heldOutPlayers > 0
+              ? `${heldOutPlayers.toLocaleString()} players held out and managed by rules-based baseline.`
+              : "Players held out and managed by rules-based baseline."}
+          </span>
+          <span className="text-[11px] text-quest-ink-faint">
+            We recommend 10&ndash;15% for reliable measurement.
           </span>
         </div>
       </div>

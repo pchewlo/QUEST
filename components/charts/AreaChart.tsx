@@ -9,6 +9,7 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts"
 
 type SeriesConfig = {
@@ -18,6 +19,13 @@ type SeriesConfig = {
   type?: 'area' | 'line'
 }
 
+type ReferenceLineConfig = {
+  value: number
+  label: string
+  color: string
+  yAxisId: string
+}
+
 type AreaChartProps = {
   data: Array<Record<string, unknown>>
   xKey: string
@@ -25,6 +33,7 @@ type AreaChartProps = {
   height?: number
   yAxisLeft?: string
   yAxisRight?: string
+  referenceLine?: ReferenceLineConfig
 }
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
@@ -56,6 +65,7 @@ export function AreaChartComponent({
   height = 280,
   yAxisLeft,
   yAxisRight,
+  referenceLine,
 }: AreaChartProps) {
   const hasRightAxis = !!yAxisRight
 
@@ -114,9 +124,9 @@ export function AreaChartComponent({
                 dataKey={s.key}
                 name={s.label}
                 stroke={s.color}
-                strokeWidth={1.5}
+                strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 4, strokeWidth: 0 }}
               />
             )
           }
@@ -129,14 +139,29 @@ export function AreaChartComponent({
               dataKey={s.key}
               name={s.label}
               stroke={s.color}
-              strokeWidth={1.5}
+              strokeWidth={2}
               fill={s.color}
               fillOpacity={0.1}
               dot={false}
-              activeDot={{ r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 4, strokeWidth: 0 }}
             />
           )
         })}
+        {referenceLine && (
+          <ReferenceLine
+            yAxisId={referenceLine.yAxisId}
+            y={referenceLine.value}
+            stroke={referenceLine.color}
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+            label={{
+              value: referenceLine.label,
+              position: "right",
+              fontSize: 11,
+              fill: referenceLine.color,
+            }}
+          />
+        )}
       </ComposedChart>
     </ResponsiveContainer>
   )

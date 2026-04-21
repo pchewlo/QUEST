@@ -99,6 +99,7 @@ export default function InsightsPage() {
             actionLabel={insight.actionLabel}
             onAction={() => alert(`Action: ${insight.actionLabel}`)}
             icon={insight.icon}
+            accent={i < 2}
           />
         ))}
       </div>
