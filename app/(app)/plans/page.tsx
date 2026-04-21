@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search } from "lucide-react"
+import { Search, ChevronDown, X } from "lucide-react"
 import { getDB } from "@/lib/mock/db"
 import { DataTable } from "@/components/DataTable"
 import { StatusPill } from "@/components/StatusPill"
@@ -36,6 +36,92 @@ type PlanRow = {
   retentionLift: number
   safetyFlags: number
   [key: string]: unknown
+}
+
+// ---- Filter chip dropdown ----
+
+type FilterOption = { value: string; label: string; count?: number }
+
+function FilterChip({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: FilterOption[]
+  onChange: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const isActive = value !== "all"
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? label
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
+          isActive
+            ? "bg-quest-accent text-white"
+            : "border border-border bg-card text-quest-ink-muted hover:bg-quest-surface-muted"
+        }`}
+      >
+        {isActive ? selectedLabel : label}
+        {isActive ? (
+          <X
+            size={12}
+            strokeWidth={2}
+            className="ml-0.5 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation()
+              onChange("all")
+              setOpen(false)
+            }}
+          />
+        ) : (
+          <ChevronDown size={12} strokeWidth={2} />
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value === value ? "all" : opt.value)
+                setOpen(false)
+              }}
+              className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-[12px] transition-colors ${
+                opt.value === value
+                  ? "bg-quest-accent-soft text-quest-accent font-medium"
+                  : "text-quest-ink-muted hover:bg-quest-surface-muted"
+              }`}
+            >
+              <span>{opt.label}</span>
+              {opt.count !== undefined && (
+                <span className="ml-2 tabular-nums text-[11px] text-quest-ink-faint">{opt.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function PlansPage() {
@@ -101,6 +187,41 @@ export default function PlansPage() {
 
     return rows
   }, [planRows, searchQuery, statusFilter, objectiveFilter])
+
+  // Compute counts per status and objective for filter chips
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const row of planRows) {
+      counts[row.status] = (counts[row.status] || 0) + 1
+    }
+    return counts
+  }, [planRows])
+
+  const objectiveCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const row of planRows) {
+      counts[row.objective] = (counts[row.objective] || 0) + 1
+    }
+    return counts
+  }, [planRows])
+
+  const statusOptions: FilterOption[] = [
+    { value: "active", label: "Active", count: statusCounts.active || 0 },
+    { value: "calibrating", label: "Calibrating", count: statusCounts.calibrating || 0 },
+    { value: "paused", label: "Paused", count: statusCounts.paused || 0 },
+    { value: "ended", label: "Ended", count: statusCounts.ended || 0 },
+    { value: "draft", label: "Draft", count: statusCounts.draft || 0 },
+  ]
+
+  const objectiveOptions: FilterOption[] = [
+    { value: "retain_at_risk", label: "Retain at-risk", count: objectiveCounts.retain_at_risk || 0 },
+    { value: "win_back_lapsed", label: "Win back lapsed", count: objectiveCounts.win_back_lapsed || 0 },
+    { value: "new_player_nurture", label: "New player nurture", count: objectiveCounts.new_player_nurture || 0 },
+    { value: "responsible_ltv_growth", label: "LTV growth", count: objectiveCounts.responsible_ltv_growth || 0 },
+    { value: "reduce_loss_chasing", label: "Reduce loss chasing", count: objectiveCounts.reduce_loss_chasing || 0 },
+  ]
+
+  const isFiltered = statusFilter !== "all" || objectiveFilter !== "all" || searchQuery.trim() !== ""
 
   const columns = [
     {
@@ -199,31 +320,25 @@ export default function PlansPage() {
           />
         </div>
 
-        <select
+        <FilterChip
+          label="Status"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-card px-2.5 text-[13px] text-quest-ink outline-none focus:ring-1 focus:ring-quest-accent"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="calibrating">Calibrating</option>
-          <option value="paused">Paused</option>
-          <option value="ended">Ended</option>
-          <option value="draft">Draft</option>
-        </select>
+          options={statusOptions}
+          onChange={setStatusFilter}
+        />
 
-        <select
+        <FilterChip
+          label="Objective"
           value={objectiveFilter}
-          onChange={(e) => setObjectiveFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-card px-2.5 text-[13px] text-quest-ink outline-none focus:ring-1 focus:ring-quest-accent"
-        >
-          <option value="all">All objectives</option>
-          <option value="retain_at_risk">Retain at-risk</option>
-          <option value="win_back_lapsed">Win back lapsed</option>
-          <option value="new_player_nurture">New player nurture</option>
-          <option value="responsible_ltv_growth">LTV growth</option>
-          <option value="reduce_loss_chasing">Reduce loss chasing</option>
-        </select>
+          options={objectiveOptions}
+          onChange={setObjectiveFilter}
+        />
+
+        <span className="ml-auto text-[12px] text-quest-ink-faint tabular-nums">
+          {isFiltered
+            ? `Showing ${filteredRows.length} of ${planRows.length} plans`
+            : `Showing ${planRows.length} plans`}
+        </span>
       </div>
 
       {/* Data Table */}

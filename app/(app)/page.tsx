@@ -131,9 +131,16 @@ export default function OverviewPage() {
     {
       key: "status",
       label: "Status",
-      render: (row: Plan & { cpep: number; retentionLift: number }) => (
-        <StatusPill status={row.status} />
-      ),
+      render: (row: Plan & { cpep: number; retentionLift: number }) => {
+        let supplementary: string | undefined
+        if (row.status === "calibrating") {
+          const daysSinceCreated = Math.max(1, Math.ceil(
+            (Date.now() - new Date(row.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+          ))
+          supplementary = `Day ${Math.min(daysSinceCreated, 3)} of 3`
+        }
+        return <StatusPill status={row.status} supplementary={supplementary} />
+      },
     },
   ], [])
 
@@ -163,45 +170,37 @@ export default function OverviewPage() {
         />
 
         {/* Double-width retention comparison card */}
-        <div className="col-span-2 rounded-lg border border-border bg-card p-4">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
-            Retention lift
-          </span>
-          <div className="mt-2 grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
-                QUEST
-              </span>
-              <span className="text-[24px] font-medium tabular-nums" style={{ color: "#7A3029" }}>
-                +{kpis.retentionLift.toFixed(1)}%
-              </span>
+        <div className="col-span-2 rounded-lg border border-border bg-card overflow-hidden">
+          <div className="grid grid-cols-2">
+            {/* QUEST side */}
+            <div className="border-r border-border p-4">
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#7A3029" }}>QUEST</span>
+              <div className="mt-1">
+                <span className="text-[28px] font-medium tabular-nums" style={{ color: "#7A3029" }}>+{kpis.retentionLift.toFixed(1)}%</span>
+              </div>
               <span className="text-[11px] text-quest-ink-faint">7-day retention</span>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">
-                Rules-based control
-              </span>
-              <span className="text-[24px] font-medium tabular-nums text-quest-ink-muted">
-                +4.2%
-              </span>
-              <span className="text-[11px] text-quest-ink-faint">(same cohort, held out)</span>
+            {/* Control side */}
+            <div className="p-4 bg-quest-surface-muted/40">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-quest-ink-faint">Rules-based control</span>
+              <div className="mt-1">
+                <span className="text-[28px] font-medium tabular-nums text-quest-ink-faint">+4.2%</span>
+              </div>
+              <span className="text-[11px] text-quest-ink-faint">same cohort, held out</span>
             </div>
           </div>
-          <div className="mt-2 border-t border-border pt-2">
-            <span className="text-[13px] font-medium tabular-nums text-quest-ink">
-              Lift: +{(kpis.retentionLift - 4.2).toFixed(1)} percentage points
-            </span>
+          <div className="flex items-center justify-between border-t border-border px-4 py-2">
+            <span className="text-[12px] font-medium tabular-nums text-quest-success">Lift: +{(kpis.retentionLift - 4.2).toFixed(1)}pp</span>
+            <span className="text-[11px] text-quest-ink-faint">10% holdout · rules-based baseline</span>
           </div>
-          <p className="mt-1 text-[11px] text-quest-ink-faint">
-            Control group is 10% of each plan&apos;s cohort, held out and managed by rules-based system.
-          </p>
         </div>
 
         <KPICard
           label="Safety interventions"
           value={kpis.safetyToday}
-          delta="today"
+          delta="0.18 per 1k decisions"
           deltaType="neutral"
+          subtitle={`${kpis.safetyToday} today`}
         />
       </div>
 

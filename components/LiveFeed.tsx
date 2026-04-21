@@ -11,13 +11,13 @@ type LiveFeedProps = {
   onItemClick?: (decision: Decision) => void
 }
 
-const typeDisplay: Record<Decision['type'], { label: string; variant: 'rg_hold' | 'rg_caution' | 'success' | 'warning' | 'info' | 'neutral' }> = {
-  mission: { label: "Mission", variant: "info" },
+const typeDisplay: Record<Decision['type'], { label: string; variant: 'rg_hold' | 'rg_caution' | 'success' | 'warning' | 'info' | 'neutral' | 'accent'; muted?: boolean }> = {
+  mission: { label: "Mission", variant: "accent" },
   bonus: { label: "Bonus", variant: "success" },
-  cooldown: { label: "Cooldown", variant: "neutral" },
+  cooldown: { label: "Cooldown", variant: "neutral", muted: true },
   cashback_deferred: { label: "Cashback", variant: "warning" },
   f2p: { label: "F2P", variant: "neutral" },
-  no_action: { label: "No action", variant: "neutral" },
+  no_action: { label: "No action", variant: "neutral", muted: true },
   held_rg: { label: "RG Hold", variant: "rg_hold" },
   blocked_rg: { label: "RG Block", variant: "rg_hold" },
 }
@@ -35,6 +35,7 @@ function formatCost(cost: number): string {
 export function LiveFeed({ decisions, maxItems = 50, onItemClick }: LiveFeedProps) {
   const visible = decisions.slice(0, maxItems)
   const isRgRow = (type: Decision['type']) => type === 'held_rg' || type === 'blocked_rg'
+  const isMutedRow = (type: Decision['type']) => type === 'cooldown' || type === 'no_action'
 
   return (
     <div className="flex flex-col rounded-lg border border-border bg-card overflow-hidden">
@@ -68,6 +69,8 @@ export function LiveFeed({ decisions, maxItems = 50, onItemClick }: LiveFeedProp
                   "flex items-center gap-3 border-b border-border px-4 text-[13px] cursor-default",
                   isRgRow(decision.type)
                     ? "bg-quest-danger-soft/50"
+                    : isMutedRow(decision.type)
+                    ? "opacity-60 hover:opacity-80 hover:bg-quest-surface-muted"
                     : "hover:bg-quest-surface-muted",
                   onItemClick && "cursor-pointer",
                 )}
@@ -86,7 +89,7 @@ export function LiveFeed({ decisions, maxItems = 50, onItemClick }: LiveFeedProp
 
                 {/* Type */}
                 <span className="w-[80px] shrink-0">
-                  <QuestBadge variant={display.variant}>{display.label}</QuestBadge>
+                  <QuestBadge variant={display.variant} muted={display.muted}>{display.label}</QuestBadge>
                 </span>
 
                 {/* Signals */}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useMemo } from "react"
 import { getDB } from "@/lib/mock/db"
 import { DataTable } from "@/components/DataTable"
 import { QuestBadge } from "@/components/QuestBadge"
@@ -22,9 +23,47 @@ const OBJECTIVE_LABELS: Record<PlanObjective, string> = {
   reduce_loss_chasing: "Loss chasing",
 }
 
+// Deterministic pseudo-random from template ID
+function hashId(id: string, seed: number): number {
+  let h = seed
+  for (let i = 0; i < id.length; i++) {
+    h = ((h << 5) - h + id.charCodeAt(i)) | 0
+  }
+  return Math.abs(h)
+}
+
+const ALL_ARCHETYPES: MissionTemplate["archetype"][] = [
+  "streak", "bonus_bet", "free_spin", "cashback", "f2p_engagement", "cooldown_nudge",
+]
+
 export default function TemplatesPage() {
   const db = getDB()
   const templates = db.templates
+
+  const [archetypeFilters, setArchetypeFilters] = useState<Set<string>>(new Set())
+  const [complianceFilter, setComplianceFilter] = useState<string>("all")
+
+  const filteredTemplates = useMemo(() => {
+    let result = templates
+    if (archetypeFilters.size > 0) {
+      result = result.filter((t) => archetypeFilters.has(t.archetype))
+    }
+    if (complianceFilter === "approved") {
+      result = result.filter((t) => t.complianceApprovedAt !== null)
+    } else if (complianceFilter === "pending") {
+      result = result.filter((t) => t.complianceApprovedAt === null)
+    }
+    return result
+  }, [templates, archetypeFilters, complianceFilter])
+
+  function toggleArchetype(arch: string) {
+    setArchetypeFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(arch)) next.delete(arch)
+      else next.add(arch)
+      return next
+    })
+  }
 
   const columns = [
     {
@@ -73,6 +112,26 @@ export default function TemplatesPage() {
       ),
     },
     {
+      key: "usedToday",
+      label: "Used today",
+      align: "right" as const,
+      render: (row: MissionTemplate) => (
+        <span className="tabular-nums text-quest-ink-muted">
+          {(hashId(row.id, 42) % 46) + 5}
+        </span>
+      ),
+    },
+    {
+      key: "engagementRate",
+      label: "Engagement rate",
+      align: "right" as const,
+      render: (row: MissionTemplate) => (
+        <span className="tabular-nums text-quest-ink-muted">
+          {(hashId(row.id, 97) % 51) + 15}%
+        </span>
+      ),
+    },
+    {
       key: "compliance",
       label: "Compliance",
       render: (row: MissionTemplate) => {
@@ -93,8 +152,49 @@ export default function TemplatesPage() {
         </p>
       </div>
 
+      {/* Filter chips */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] text-quest-ink-faint mr-1">Archetype:</span>
+        {ALL_ARCHETYPES.map((arch) => {
+          const config = ARCHETYPE_LABELS[arch]
+          const isActive = archetypeFilters.has(arch)
+          return (
+            <button
+              key={arch}
+              onClick={() => toggleArchetype(arch)}
+              className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                isActive
+                  ? "bg-quest-accent-soft text-quest-accent"
+                  : "border border-border text-quest-ink-muted hover:bg-quest-surface-muted"
+              }`}
+            >
+              {config.label}
+            </button>
+          )
+        })}
+
+        <span className="ml-3 text-[12px] text-quest-ink-faint mr-1">Compliance:</span>
+        {(["all", "approved", "pending"] as const).map((s) => {
+          const label = s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)
+          const isActive = complianceFilter === s
+          return (
+            <button
+              key={s}
+              onClick={() => setComplianceFilter(s)}
+              className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                isActive
+                  ? "bg-quest-accent-soft text-quest-accent"
+                  : "border border-border text-quest-ink-muted hover:bg-quest-surface-muted"
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
       <DataTable
-        data={templates as unknown as Record<string, unknown>[]}
+        data={filteredTemplates as unknown as Record<string, unknown>[]}
         columns={columns as Parameters<typeof DataTable>[0]["columns"]}
         rowKey={(row) => (row as unknown as MissionTemplate).id}
         searchable

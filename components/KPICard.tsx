@@ -30,7 +30,7 @@ export function KPICard({
       </span>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-[24px] font-medium tabular-nums text-quest-ink">
+        <span className="text-[28px] font-medium tabular-nums text-quest-ink">
           {prefix}
           {value}
           {suffix}

@@ -38,7 +38,7 @@ export function InsightCard({
           {metric && (
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-[12px] text-quest-ink-faint">{metric.label}</span>
-              <span className="text-[14px] font-medium tabular-nums text-quest-ink">
+              <span className="text-[18px] font-medium tabular-nums text-quest-ink">
                 {metric.value}
               </span>
               <span

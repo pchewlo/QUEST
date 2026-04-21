@@ -12,15 +12,8 @@ import {
   Moon,
 } from "lucide-react"
 
-const INSIGHTS = [
-  {
-    headline: "Streak missions outperform free bets for returning players",
-    explanation:
-      "Players returning after a 2-day gap respond 3x better to streak missions than to free bets. This pattern is consistent across recreational and medium-stake cohorts.",
-    metric: { label: "Streak vs Free bet engagement", value: "3.2\u00D7", delta: "+220%", deltaType: "positive" as const },
-    actionLabel: "Apply to Win-back plan",
-    icon: <Lightbulb size={16} />,
-  },
+// Sorted: urgent first, opportunities middle, safety impact last
+const NEEDS_ATTENTION = [
   {
     headline: "VIP CPEP rising this week",
     explanation:
@@ -38,14 +31,6 @@ const INSIGHTS = [
     icon: <Clock size={16} />,
   },
   {
-    headline: "First-week mission completion predicts retention",
-    explanation:
-      "New players who complete 3 missions in their first week retain at 2.4\u00D7 the base rate. Consider increasing nurture frequency for this critical window.",
-    metric: { label: "3-mission retention", value: "78%", delta: "+140%", deltaType: "positive" as const },
-    actionLabel: "Increase nurture frequency",
-    icon: <Users size={16} />,
-  },
-  {
     headline: "Weekend win-back showing diminishing returns",
     explanation:
       "Weekend win-back showing diminishing returns after day 14. Players who haven\u2019t re-engaged by day 14 are unlikely to respond to further bonus-based outreach.",
@@ -53,13 +38,24 @@ const INSIGHTS = [
     actionLabel: "Review plan duration",
     icon: <Calendar size={16} />,
   },
+]
+
+const OPPORTUNITIES = [
   {
-    headline: "Loss chasing intervention saving \u00A312.4k/week",
+    headline: "Streak missions outperform free bets for returning players",
     explanation:
-      "Loss chasing intervention preventing an estimated \u00A312,400/week in player losses. The cooldown nudges and F2P redirects are effectively interrupting harmful patterns.",
-    metric: { label: "Prevented losses", value: "\u00A312.4k", delta: "per week", deltaType: "positive" as const },
-    actionLabel: "View safety report",
-    icon: <Shield size={16} />,
+      "Players returning after a 2-day gap respond 3x better to streak missions than to free bets. This pattern is consistent across recreational and medium-stake cohorts.",
+    metric: { label: "Streak vs Free bet engagement", value: "3.2\u00D7", delta: "+220%", deltaType: "positive" as const },
+    actionLabel: "Apply to Win-back plan",
+    icon: <Lightbulb size={16} />,
+  },
+  {
+    headline: "First-week mission completion predicts retention",
+    explanation:
+      "New players who complete 3 missions in their first week retain at 2.4\u00D7 the base rate. Consider increasing nurture frequency for this critical window.",
+    metric: { label: "3-mission retention", value: "78%", delta: "+140%", deltaType: "positive" as const },
+    actionLabel: "Increase nurture frequency",
+    icon: <Users size={16} />,
   },
   {
     headline: "Cashback outperforms free spins for lapsed bettors",
@@ -79,6 +75,17 @@ const INSIGHTS = [
   },
 ]
 
+const SAFETY_IMPACT = [
+  {
+    headline: "Loss chasing intervention saving \u00A312.4k/week",
+    explanation:
+      "Loss chasing intervention preventing an estimated \u00A312,400/week in player losses. The cooldown nudges and F2P redirects are effectively interrupting harmful patterns.",
+    metric: { label: "Prevented losses", value: "\u00A312.4k", delta: "per week", deltaType: "positive" as const },
+    actionLabel: "View safety report",
+    icon: <Shield size={16} />,
+  },
+]
+
 export default function InsightsPage() {
   return (
     <div className="space-y-6">
@@ -89,19 +96,65 @@ export default function InsightsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {INSIGHTS.map((insight, i) => (
-          <InsightCard
-            key={i}
-            headline={insight.headline}
-            explanation={insight.explanation}
-            metric={insight.metric}
-            actionLabel={insight.actionLabel}
-            onAction={() => alert(`Action: ${insight.actionLabel}`)}
-            icon={insight.icon}
-            accent={i < 2}
-          />
-        ))}
+      {/* Needs attention */}
+      <div>
+        <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-quest-danger">
+          Needs attention
+        </h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {NEEDS_ATTENTION.map((insight, i) => (
+            <InsightCard
+              key={`attn-${i}`}
+              headline={insight.headline}
+              explanation={insight.explanation}
+              metric={insight.metric}
+              actionLabel={insight.actionLabel}
+              onAction={() => alert(`Action: ${insight.actionLabel}`)}
+              icon={insight.icon}
+              accent
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Opportunities */}
+      <div>
+        <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-quest-accent">
+          Opportunities
+        </h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {OPPORTUNITIES.map((insight, i) => (
+            <InsightCard
+              key={`opp-${i}`}
+              headline={insight.headline}
+              explanation={insight.explanation}
+              metric={insight.metric}
+              actionLabel={insight.actionLabel}
+              onAction={() => alert(`Action: ${insight.actionLabel}`)}
+              icon={insight.icon}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Safety impact */}
+      <div>
+        <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-quest-ink-faint">
+          Safety impact
+        </h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {SAFETY_IMPACT.map((insight, i) => (
+            <InsightCard
+              key={`safety-${i}`}
+              headline={insight.headline}
+              explanation={insight.explanation}
+              metric={insight.metric}
+              actionLabel={insight.actionLabel}
+              onAction={() => alert(`Action: ${insight.actionLabel}`)}
+              icon={insight.icon}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

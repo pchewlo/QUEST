@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { getDB } from "@/lib/mock/db"
 import { KPICard } from "@/components/KPICard"
 import { DataTable } from "@/components/DataTable"
@@ -25,9 +26,11 @@ const ACTION_BADGE_VARIANT: Record<SafetyEvent["action"], "rg_hold" | "rg_cautio
 }
 
 export default function SafetyPage() {
+  const router = useRouter()
   const db = getDB()
   const safetyEvents = db.safetyEvents
   const plans = db.plans
+  const [actionFilter, setActionFilter] = useState<string>("all")
 
   // KPI calculations
   const today = new Date().toISOString().split("T")[0]
@@ -66,8 +69,14 @@ export default function SafetyPage() {
     })
   }, [safetyEvents])
 
-  // Table data: last 100
-  const tableData = safetyEvents.slice(0, 100)
+  // Table data: last 100, with action filter
+  const tableData = useMemo(() => {
+    let data = safetyEvents.slice(0, 100)
+    if (actionFilter !== "all") {
+      data = data.filter((e) => e.action === actionFilter)
+    }
+    return data
+  }, [safetyEvents, actionFilter])
 
   const columns = [
     {
@@ -154,12 +163,14 @@ export default function SafetyPage() {
           delta="safety events"
           deltaType="neutral"
         />
-        <KPICard
-          label="Self-exclusion respect"
-          value="100%"
-          delta="always"
-          deltaType="positive"
-        />
+        <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-0.5 ring-1 ring-green-200 dark:ring-green-800">
+          <KPICard
+            label="Self-exclusion respect"
+            value="100%"
+            delta="always"
+            deltaType="positive"
+          />
+        </div>
         <KPICard
           label="RG overrides"
           value={rgOverrides}
@@ -207,12 +218,38 @@ export default function SafetyPage() {
             Last 100 events
           </span>
         </h2>
+
+        {/* Action filter buttons */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {(["all", "blocked", "held", "redirected"] as const).map((a) => {
+            const label = a === "all" ? "All" : `${a.charAt(0).toUpperCase() + a.slice(1)} only`
+            const isActive = actionFilter === a
+            return (
+              <button
+                key={a}
+                onClick={() => setActionFilter(a)}
+                className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-quest-accent-soft text-quest-accent"
+                    : "border border-border text-quest-ink-muted hover:bg-quest-surface-muted"
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+
         <DataTable
           data={tableData as unknown as Record<string, unknown>[]}
           columns={columns as Parameters<typeof DataTable>[0]["columns"]}
           rowKey={(row) => (row as unknown as SafetyEvent).id}
           searchable
           searchPlaceholder="Search events..."
+          onRowClick={(row) => {
+            const event = row as unknown as SafetyEvent
+            router.push(`/agents/${event.playerId.replace("#", "")}`)
+          }}
         />
       </div>
     </div>

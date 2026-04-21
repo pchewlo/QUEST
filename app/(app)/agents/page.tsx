@@ -16,6 +16,7 @@ export default function AgentsPage() {
   const [planFilter, setPlanFilter] = useState<string>("all")
   const [rgFilter, setRgFilter] = useState<string>("all")
   const [stateFilter, setStateFilter] = useState<string>("all")
+  const [quickFilter, setQuickFilter] = useState<string>("all")
 
   const plans = db.plans
 
@@ -39,8 +40,16 @@ export default function AgentsPage() {
       agents = agents.filter((a) => a.state === stateFilter)
     }
 
+    if (quickFilter === "active") {
+      agents = agents.filter((a) => a.state === "active")
+    } else if (quickFilter === "held") {
+      agents = agents.filter((a) => a.state === "held")
+    } else if (quickFilter === "blocked") {
+      agents = agents.filter((a) => a.rgStatus === "restricted")
+    }
+
     return agents.slice(0, 50)
-  }, [db.agents, searchQuery, planFilter, rgFilter, stateFilter])
+  }, [db.agents, searchQuery, planFilter, rgFilter, stateFilter, quickFilter])
 
   const totalCount = db.agents.length
 
@@ -102,6 +111,22 @@ export default function AgentsPage() {
         return <QuestBadge variant="rg_hold">RESTRICTED</QuestBadge>
       },
     },
+    {
+      key: "view",
+      label: "",
+      width: "60px",
+      render: (row: Agent) => (
+        <span
+          className="text-[12px] text-quest-ink-faint hover:text-quest-accent transition-colors"
+          onClick={(e) => {
+            e.stopPropagation()
+            router.push(`/agents/${row.playerId.replace("#", "")}`)
+          }}
+        >
+          View &rarr;
+        </span>
+      ),
+    },
   ]
 
   return (
@@ -111,6 +136,31 @@ export default function AgentsPage() {
         <p className="mt-1 text-[14px] text-quest-ink-muted">
           12,847 active across {plans.filter((p) => p.status === "active").length} plans
         </p>
+      </div>
+
+      {/* Quick safety state filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(["all", "active", "held", "blocked"] as const).map((s) => {
+          const label = s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)
+          const isActive = quickFilter === s
+          return (
+            <button
+              key={s}
+              onClick={() => setQuickFilter(s)}
+              className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                isActive
+                  ? s === "held"
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : "bg-quest-accent-soft text-quest-accent"
+                  : s === "held"
+                    ? "border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                    : "border border-border text-quest-ink-muted hover:bg-quest-surface-muted"
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Filters */}

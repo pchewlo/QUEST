@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
-import { Search, ChevronUp, ChevronDown } from "lucide-react"
+import { Search, ChevronUp, ChevronDown, Inbox } from "lucide-react"
 
 type Column<T> = {
   key: string
@@ -157,8 +157,14 @@ export function DataTable<T extends Record<string, unknown>>({
       </div>
 
       {sorted.length === 0 && (
-        <div className="flex items-center justify-center py-10 text-[13px] text-quest-ink-faint">
-          {emptyMessage}
+        <div className="flex flex-col items-center justify-center gap-2 py-14">
+          <Inbox size={28} strokeWidth={1.2} className="text-quest-ink-faint/50" />
+          <span className="text-[14px] font-medium text-quest-ink-muted">
+            {emptyMessage}
+          </span>
+          <span className="text-[12px] text-quest-ink-faint">
+            Data will appear here once available
+          </span>
         </div>
       )}
     </div>

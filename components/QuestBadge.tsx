@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils"
 
 type QuestBadgeProps = {
-  variant: 'rg_hold' | 'rg_caution' | 'success' | 'warning' | 'info' | 'neutral'
+  variant: 'rg_hold' | 'rg_caution' | 'success' | 'warning' | 'info' | 'neutral' | 'accent'
+  muted?: boolean
   children: React.ReactNode
 }
 
@@ -12,14 +13,16 @@ const variantStyles: Record<QuestBadgeProps['variant'], string> = {
   warning: "bg-quest-warning-soft text-quest-warning",
   info: "bg-quest-info-soft text-quest-info",
   neutral: "bg-quest-surface-muted text-quest-ink-muted",
+  accent: "bg-quest-accent-soft text-quest-accent",
 }
 
-export function QuestBadge({ variant, children }: QuestBadgeProps) {
+export function QuestBadge({ variant, muted, children }: QuestBadgeProps) {
   return (
     <span
       className={cn(
         "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium uppercase",
         variantStyles[variant],
+        muted && "opacity-55",
       )}
     >
       {children}
